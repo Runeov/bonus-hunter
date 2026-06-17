@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bonus & Registration Tracker — NO / TH Cross-Compatible Platforms</title>
+<style>
+  :root{
+    --bg:#0c0f17; --panel:#141925; --panel2:#1b2230; --border:#28314a;
+    --text:#e6ebf5; --muted:#8794ad; --accent:#5b8cff; --accent2:#36d399;
+    --warn:#fbbf24; --bad:#f87171; --good:#34d399; --chip:#222b40;
+    --shadow:0 8px 28px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",Roboto,system-ui,Arial,sans-serif;background:
+    radial-gradient(1200px 600px at 80% -10%, #16203a 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, #1a1430 0%, transparent 55%),
+    var(--bg);color:var(--text);min-height:100vh}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  header{padding:26px 28px 10px;max-width:1500px;margin:0 auto}
+  h1{margin:0 0 4px;font-size:24px;letter-spacing:.2px}
+  .sub{color:var(--muted);font-size:13px;line-height:1.5}
+
+  /* summary stat bar */
+  .stats{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0 6px}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:12px 16px;min-width:150px;flex:1;box-shadow:var(--shadow)}
+  .stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .stat .v{font-size:21px;font-weight:700;margin-top:3px}
+  .v.pos{color:var(--good)} .v.neg{color:var(--bad)}
+
+  /* controls */
+  .controls{position:sticky;top:0;z-index:30;background:rgba(12,15,23,.85);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:12px 28px;margin-top:14px}
+  .controls .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;max-width:1500px;margin:0 auto}
+  input,select,textarea,button{font-family:inherit;color:var(--text)}
+  .field{background:var(--panel2);border:1px solid var(--border);border-radius:9px;
+    padding:9px 12px;font-size:13px;outline:none}
+  .field:focus{border-color:var(--accent)}
+  #search{min-width:230px;flex:1}
+  .btn{background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:9px 14px;
+    font-size:13px;cursor:pointer;transition:.15s}
+  .btn:hover{border-color:var(--accent);background:#222c44}
+  .btn.primary{background:linear-gradient(180deg,#5b8cff,#3f6fe0);border-color:#3f6fe0;color:#fff}
+  .btn.danger:hover{border-color:var(--bad)}
+  .seg{display:flex;background:var(--panel2);border:1px solid var(--border);border-radius:9px;overflow:hidden}
+  .seg button{background:transparent;border:0;padding:9px 13px;font-size:13px;color:var(--muted);cursor:pointer}
+  .seg button.active{background:var(--accent);color:#fff}
+  label.chk{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+
+  /* grid */
+  main{max-width:1500px;margin:0 auto;padding:20px 28px 80px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;
+    box-shadow:var(--shadow);display:flex;flex-direction:column;transition:.18s}
+  .card.registered{border-color:#2e6b52;box-shadow:0 0 0 1px #2e6b5255,var(--shadow)}
+  .card.ready{border-color:#34d399;box-shadow:0 0 0 1px #34d39955,0 0 22px #16a34a22,var(--shadow)}
+  .head-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+  .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+    padding:14px 16px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#1a2233,#141925)}
+  .name{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .num{font-size:11px;color:var(--muted);font-weight:600;background:var(--chip);padding:2px 7px;border-radius:20px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+  .chip{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--chip);color:var(--muted);
+    border:1px solid var(--border)}
+  .chip.focus{color:#cfe0ff;border-color:#33457a}
+  .chip.lic{color:#ffe2b8;border-color:#5a4423}
+  .chip.sticky{color:#ffc9c9;border-color:#5a2c2c}
+  .chip.nonsticky{color:#bdf5d6;border-color:#256047}
+  .chip.region{color:#cbd5e1;border-color:#3a4560}
+  .chip.region.th{color:#a7f3d0;border-color:#2c5a47}
+  .chip.region.cross{color:#bfd4ff;border-color:#33457a}
+  .url{font-size:12px;color:var(--muted);margin-top:6px}
+
+  .body{padding:14px 16px;font-size:12.5px;line-height:1.5;flex:1}
+  .terms{display:grid;grid-template-columns:1fr;gap:10px}
+  .term{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+  .term h4{margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent)}
+  .term.casino h4{color:#c084fc}
+  .kv{display:flex;gap:6px;margin:2px 0}
+  .kv .kk{color:var(--muted);min-width:96px;flex-shrink:0}
+  .kv .vv{color:var(--text)}
+  .na{color:var(--muted);font-style:italic}
+
+  /* tracker panel */
+  .track{background:#10141f;border-top:1px solid var(--border);padding:14px 16px}
+  .track h4{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:#8fa9ff;
+    display:flex;align-items:center;gap:8px}
+  .track .grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .track label{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
+  .track .field{width:100%;padding:7px 9px}
+  .track textarea{width:100%;min-height:46px;resize:vertical}
+  .full{grid-column:1 / -1}
+  .statusbadge{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600}
+  .s-none{background:#222b40;color:#8794ad}
+  .s-reg{background:#1e3a5f;color:#8fc0ff}
+  .s-dep{background:#3a2f5f;color:#c4b0ff}
+  .s-wag{background:#5a4a1a;color:#ffd98a}
+  .s-done{background:#1f4d3a;color:#7fe9b8}
+  .s-with{background:#14513a;color:#34d399}
+  .s-fail{background:#4d1f1f;color:#ff9b9b}
+  .result-pos{color:var(--good)!important;border-color:#2e6b52!important}
+  .result-neg{color:var(--bad)!important;border-color:#5a2c2c!important}
+
+  /* bonus metrics strip */
+  .metrics{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+  .met{font-size:11px;color:var(--muted);background:var(--panel2);border:1px solid var(--border);
+    border-radius:8px;padding:5px 9px;display:flex;gap:5px;align-items:baseline}
+  .met b{font-size:14px;color:var(--text)}
+  .met.val b{color:var(--accent2)}
+  .met.val{border-color:#256047}
+
+  /* progress bar */
+  .hint{color:var(--muted);font-weight:400;font-size:10px}
+  .progress{margin-top:7px}
+  .bar{height:12px;background:#0a0d15;border:1px solid var(--border);border-radius:20px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:20px;transition:width .3s ease}
+  .bar-fill.lo{background:linear-gradient(90deg,#f87171,#fb923c)}
+  .bar-fill.mid{background:linear-gradient(90deg,#fbbf24,#facc15)}
+  .bar-fill.hi{background:linear-gradient(90deg,#a3e635,#4ade80)}
+  .bar-fill.done{background:linear-gradient(90deg,#34d399,#10b981)}
+  .bar-label{font-size:11px;color:var(--muted);margin-top:4px}
+  .bar-empty{font-size:11px;color:var(--muted);font-style:italic;padding:2px 0}
+
+  /* list view */
+  .grid.listmode{display:block;overflow-x:auto}
+  .ltable{width:100%;border-collapse:collapse;font-size:13px;background:var(--panel);
+    border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);min-width:640px}
+  .ltable thead th{position:sticky;top:56px;background:#1a2233;color:var(--muted);text-align:left;
+    padding:11px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;
+    border-bottom:1px solid var(--border);z-index:5}
+  .ltable td{padding:9px 12px;border-bottom:1px solid #1c2333;vertical-align:middle}
+  .lrow{cursor:pointer}
+  .lrow:hover{background:#161d2b}
+  .lrow.reg{background:#11261d}
+  .lrow.reg:hover{background:#143024}
+  .lrow.open>td{background:#18202f}
+  .lrow.open.reg>td{background:#14271d}
+  .lrow .chev{display:inline-block;color:var(--muted);width:13px;font-size:11px}
+  .livetag{font-size:10px;font-weight:700;color:#86efac;background:#0f2e1f;border:1px solid #1f5a3d;
+    border-radius:20px;padding:1px 7px;margin-left:6px;vertical-align:middle}
+  .ldetail>td{padding:0;background:#0a0d15}
+  .ldetail-wrap{padding:14px 14px 18px;max-width:1120px}
+  /* expanded list row: head on top, then body + tracker SIDE BY SIDE */
+  .ldetail .card{box-shadow:none;flex-direction:row;flex-wrap:wrap}
+  .ldetail .card>.card-head{flex:1 1 100%}
+  .ldetail .card>.body{flex:1 1 360px;border-right:1px solid var(--border)}
+  .ldetail .card>.track{flex:1 1 320px;border-top:0}
+  @media(max-width:720px){
+    .ldetail .card>.body{border-right:0}
+  }
+  .ltable td.c{text-align:center;width:58px}
+  .ltable .muted{color:var(--muted)}
+  .lname{font-weight:600}
+  .lchips{display:block;font-size:10px;color:var(--muted);font-weight:400;margin-top:2px}
+  .lbonus{color:var(--accent2);font-weight:700;white-space:nowrap}
+  .lwager{color:#ffd98a;font-weight:600;white-space:nowrap}
+  .lreg,.lkyc{width:20px;height:20px;cursor:pointer}
+  .lreg{accent-color:var(--accent2)}
+  .lkyc{accent-color:var(--accent)}
+  .lrow.kyc td.kyccell{box-shadow:inset 3px 0 0 var(--accent)}
+  /* KYC checkbox in card view */
+  .trk-chk{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text);cursor:pointer;
+    background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:9px 11px;user-select:none}
+  .trk-chk input{width:18px;height:18px;accent-color:var(--accent)}
+
+  .empty{text-align:center;color:var(--muted);padding:60px 20px;font-size:15px}
+  .footer-note{max-width:1500px;margin:30px auto 0;padding:16px 28px;color:var(--muted);font-size:12px;
+    border-top:1px solid var(--border);line-height:1.6}
+  .footer-note b{color:var(--warn)}
+  .roadmap{max-width:1500px;margin:30px auto 0;padding:16px 22px;background:var(--panel);
+    border:1px solid var(--border);border-left:3px solid #8b5cf6;border-radius:12px}
+  .roadmap h3{margin:0 0 6px;font-size:14px;color:#c4b5fd}
+  .roadmap ul{margin:6px 0 0;padding-left:18px;color:var(--muted);font-size:13px;line-height:1.65}
+  .roadmap li{margin-bottom:6px}
+  .roadmap b{color:var(--text)}
+  .rm-note{color:var(--muted);font-size:11px;margin-top:8px;font-style:italic}
+  .rm-tag{display:inline-block;font-size:10px;font-weight:700;color:#c4b5fd;background:#241b3a;
+    border:1px solid #4c3a78;border-radius:20px;padding:1px 8px;margin-left:6px;vertical-align:middle}
+  .saved-pill{position:fixed;bottom:18px;right:18px;background:var(--accent2);color:#053b29;
+    font-weight:700;font-size:12px;padding:8px 16px;border-radius:30px;opacity:0;transition:.3s;
+    box-shadow:var(--shadow);z-index:50}
+  .saved-pill.show{opacity:1}
+  @media(max-width:560px){.grid{grid-template-columns:1fr}.track .grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎯 Bonus &amp; Registration Tracker</h1>
+  <div class="sub">
+    85 platforms: the cross-compatible <b>Norway+Thailand</b> index (#1–50) plus the <b>Thailand-focused</b> set (#51–85, Asian turnover model, crypto casinos &amp; local rails).
+    Mark which sites you've registered at and log your deposits, bonuses, wagering progress and net result.
+    Everything saves automatically in this browser only — nothing leaves your device.
+  </div>
+
+  <div class="stats" id="stats"></div>
+</header>
+
+<div class="controls">
+  <div class="row">
+    <div class="seg" id="viewSeg">
+      <button data-v="cards" class="active">▦ Cards</button>
+      <button data-v="list">≣ List</button>
+    </div>
+    <input id="search" class="field" placeholder="🔍 Search platform, license, provider…">
+    <div class="seg" id="focusSeg">
+      <button data-f="all" class="active">All</button>
+      <button data-f="Both">Sports+Casino</button>
+      <button data-f="Sports">Sports</button>
+      <button data-f="Casino">Casino</button>
+    </div>
+    <div class="seg" id="regionSeg">
+      <button data-r="all" class="active">All markets</button>
+      <button data-r="NO/TH">NO+TH</button>
+      <button data-r="TH">TH only</button>
+    </div>
+    <select id="statusFilter" class="field">
+      <option value="all">All statuses</option>
+      <option value="none">Not started</option>
+      <option value="registered">Registered</option>
+      <option value="deposited">Deposited</option>
+      <option value="wagering">Wagering</option>
+      <option value="completed">Completed</option>
+      <option value="withdrawn">Withdrawn</option>
+      <option value="failed">Failed / closed</option>
+    </select>
+    <label class="chk"><input type="checkbox" id="onlyReg"> Only registered</label>
+    <label class="chk"><input type="checkbox" id="readyOnly"> 🟢 Ready to bet only</label>
+    <select id="sortBy" class="field">
+      <option value="num">Sort: list order</option>
+      <option value="pct">Sort: bonus % (highest)</option>
+      <option value="sum">Sort: total bonus % (sports+casino)</option>
+      <option value="value">Sort: best value (bonus ÷ wagering)</option>
+      <option value="lowwager">Sort: lowest wagering</option>
+      <option value="name">Sort: name A–Z</option>
+      <option value="result">Sort: net result</option>
+      <option value="deposit">Sort: deposit</option>
+    </select>
+    <span style="flex:1"></span>
+    <button class="btn" id="exportJson">⬇ Export JSON</button>
+    <button class="btn" id="exportCsv">⬇ Export CSV</button>
+    <button class="btn" id="scannerFeed" title="Export only LIVE (registered + KYC) casinos as a JSON feed for the odds-scanner">🟢 Scanner feed</button>
+    <button class="btn" id="importBtn">⬆ Import</button>
+    <input type="file" id="importFile" accept="application/json" style="display:none">
+    <button class="btn danger" id="resetBtn">↺ Reset my data</button>
+  </div>
+</div>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">No platforms match your filters.</div>
+</main>
+
+<div class="roadmap">
+  <h3>🛠️ Planned features <span class="rm-tag">to build later</span></h3>
+  <ul>
+    <li><b>Promotions &amp; newsletter harvesting.</b> Register at every casino and subscribe to their newsletters, so ongoing and special offers arrive by email. Per casino, keep ourselves updated on new promotions — ideally by auto-parsing the casino offer emails from the inbox (your-inbox@example.com) and surfacing each new promo against its platform here.
+      <br><span class="rm-note">Pieces this will likely need: a “newsletter subscribed” flag per casino, a per-casino promotions log (offer text, %, code, expiry, date received), and an email-parsing step (e.g. Gmail label → reader) that matches incoming offers to platforms by sender domain / name.</span></li>
+  </ul>
+</div>
+
+<div class="footer-note">
+  <b>Play responsibly.</b> This is a personal organiser for tracking your own activity — it does not place bets, hold funds, or guarantee any outcome.
+  Bonus figures, wagering requirements and licensing were copied from research notes and <b>change frequently</b>; always confirm the current terms on each operator's official terms page before depositing.
+  Gambling involves real financial risk and can be addictive. Norway (Norsk Tipping monopoly) and Thailand both restrict offshore gambling — know your local laws.
+  Help: Norway → <a href="https://hjelpelinjen.no" target="_blank" rel="noopener">Hjelpelinjen 800 800 40</a>.
+</div>
+
+<div class="saved-pill" id="savedPill">✓ Saved</div>
+
+<script>
+/* ----------  PLATFORM DATA (extracted from your paste)  ---------- */
+const DATA = [
+ {n:1,name:"Stake",focus:"Both",lic:"Curaçao / Anjouan",url:"stake.com",
+  sb:"200% up to ~$2,000 (≈20,000 NOK / 70,000 THB) via code TM200/FWMAX",sw:"40x bonus · min odds 1.20 · deposit within 24h of signup",
+  cb:"Shared wallet: 200% up to $2,000",cw:"40x bonus",type:"Sticky",max:"1% of deposit per bet",valid:"No expiry (permanent)",
+  gw:"Crypto-native; instant THB/NOK token conversion"},
+ {n:2,name:"BC.Game",focus:"Both",lic:"Curaçao",url:"bc.game",
+  sb:"4-tier monthly up to 360% match + up to 5 free tokens/phase",sw:"10x bonus · min 1.50 · 30 days",
+  cb:"Up to 470% / $1,600 + 400 Free Spins",cw:"45x bonus / 40x FS · locked-token (unlocks gradually)",type:"Locked Token",max:"50 NOK / $5 / 175 THB",valid:"30 days · FS within 24h",
+  gw:"Massive crypto support; optimized for TH/NO IPs"},
+ {n:3,name:"20Bet",focus:"Both",lic:"Curaçao",url:"20bet.com",
+  sb:"100% up to 1,000 NOK / 3,500 THB",sw:"5x bonus · combo ≥2.00 · 7 days · +Saturday reload up to 1,500 NOK free bets",
+  cb:"100% up to 1,200 NOK / 4,000 THB + 120 FS (Elvis Frog)",cw:"40x bonus / 40x FS",type:"Sticky",max:"50 NOK / 175 THB",valid:"7 days · FS in batches of 30 over 4 days",
+  gw:"Jeton, MiFinity + localized crypto"},
+ {n:4,name:"22Bet",focus:"Both",lic:"Curaçao",url:"22bet.com",
+  sb:"100% up to 1,200 NOK / 4,500 THB",sw:"5x bonus · 3+ legs, ≥3 at 1.40+ · 7 days",
+  cb:"100% up to 3,000 NOK / 11,000 THB",cw:"50x bonus",type:"Sticky",max:"50 NOK / 175 THB",valid:"7 days",
+  gw:"Localized dual-currency menus; high liquidity"},
+ {n:5,name:"Rabona",focus:"Both",lic:"Curaçao",url:"rabona.com",
+  sb:"100% up to 2,000 NOK / 5,000 THB",sw:"5x (Dep+Bonus) · single 2.00 / multi 1.50/leg · 30 days · +50% bet-builder rebate",
+  cb:"100% up to 5,000 NOK / 17,000 THB + 200 FS + 1 Bonus Crab",cw:"35x (D+B) / 40x FS",type:"Sticky",max:"50 NOK / 175 THB",valid:"10 days",
+  gw:"Turnkey hybrid fiat/crypto"},
+ {n:6,name:"1xBet",focus:"Both",lic:"Curaçao",url:"1xbet.com",
+  sb:"100% up to 1,200 NOK / 4,000 THB + No-Risk bet (up to 200 NOK back)",sw:"5x bonus · 3+ legs, ≥3 at 1.40+ · 30 days",
+  cb:"Tiered up to 15,000 NOK / 50,000 THB + 150 FS",cw:"35x bonus",type:"Sticky (crypto barred from casino pkg)",max:"50 NOK / 175 THB",valid:"7 days/tier",
+  gw:"Supports PromptPay (TH) + NO e-vouchers"},
+ {n:7,name:"Lucky Spins",focus:"Casino",lic:"Curaçao",url:"luckyspins.com",
+  sb:null,sw:null,
+  cb:"100% up to 3,000 NOK / 10,000 THB + 100 FS",cw:"35x · cash-reload (wager own cash first)",type:"Non-Sticky",max:"50 NOK / 175 THB",valid:"7 days",
+  gw:"Tailored local slot libraries"},
+ {n:8,name:"Casino Days",focus:"Casino",lic:"Curaçao",url:"casinodays.com",
+  sb:null,sw:null,
+  cb:"100% up to 5,000 NOK / 15,000 THB + 100 FS (Book of Dead)",cw:"35x cash · reload model (wager deposit first → bonus released as cash)",type:"Non-Sticky",max:"50 NOK / 175 THB",valid:"7 days",
+  gw:"High-speed cross-border e-wallets"},
+ {n:9,name:"Lucky Dreams",focus:"Casino",lic:"Curaçao",url:"luckydreams.com",
+  sb:null,sw:null,
+  cb:"100% up to 5,000 NOK / 15,000 THB + 100 FS",cw:"40x bonus / 40x FS",type:"Sticky (Neteller/Skrill excluded)",max:"50 NOK / 175 THB",valid:"7 days",
+  gw:"Multi-currency wallets (NOK + crypto)"},
+ {n:10,name:"BetLabel",focus:"Both",lic:"Curaçao",url:"betlabel.com",
+  sb:"100% up to 1,200 NOK",sw:"5x rollover · accumulators (min 3 events, odds ≥1.40)",
+  cb:null,cw:null,type:"Sticky",max:"50 NOK / 175 THB",valid:"—",
+  gw:"Shared global liquidity; identical sports odds"},
+ {n:11,name:"Fezbet",focus:"Both",lic:"Curaçao",url:"fezbet.com",
+  sb:"100% up to 2,000 NOK / 5,000 THB",sw:"5x (D+B) · single 2.00 / multi 1.50/leg · 30 days",
+  cb:"100% up to 5,000 NOK / 17,000 THB + 200 FS",cw:"35x (D+B) / 40x FS",type:"Sticky (Neteller/Skrill excluded)",max:"50 NOK / 175 THB",valid:"10 days",
+  gw:"Altenar sportsbook architecture"},
+ {n:12,name:"Sportaza",focus:"Both",lic:"Curaçao",url:"sportaza.com",
+  sb:"100% up to 2,000 NOK / 5,000 THB + VIP free bet (50% up to 5,000 NOK, 3x)",sw:"5x (D+B) · single 2.00 / multi 1.50/leg · 30 days",
+  cb:"100% up to 5,000 NOK / 17,000 THB + 200 FS + 1 Bonus Crab",cw:"35x (D+B) / 40x FS",type:"Sticky",max:"50 NOK / 175 THB",valid:"10 days",
+  gw:"Cross-market dynamic promo feeds"},
+ {n:13,name:"Lilibet",focus:"Both",lic:"Kahnawake",url:"lilibet.com",
+  sb:"100% up to 5,000 NOK / 15,000 THB (non-sticky)",sw:"7x bonus · min odds 1.85 · 14 days",
+  cb:"100% up to 5,000 NOK / 15,000 THB + 500 FS",cw:"30x (D+B)",type:"Non-Sticky (Parachute)",max:"50 NOK / 175 THB",valid:"14 days",
+  gw:"Non-sticky bonuses across global accounts"},
+ {n:14,name:"Wazamba",focus:"Both",lic:"Curaçao",url:"wazamba.com",
+  sb:"100% up to 2,100 NOK / 6,000 THB",sw:"5x (D+B) · single 2.00 / multi 1.50/leg · 30 days",
+  cb:"100% up to 5,000 NOK / 17,000 THB + 200 FS + 1 Bonus Crab",cw:"35x (D+B) / 40x FS",type:"Sticky (Neteller/Skrill excluded)",max:"50 NOK / 175 THB",valid:"10 days",
+  gw:"Gamified UI, EU + Asia"},
+ {n:15,name:"Sportuna",focus:"Both",lic:"Curaçao",url:"sportuna.com",
+  sb:"100% up to 2,000 NOK",sw:"5x (Dep+Bonus) clearance",
+  cb:null,cw:null,type:"Sticky",max:"50 NOK / 175 THB",valid:"—",
+  gw:"Live-betting software on global CDNs"},
+ {n:16,name:"Goldenbet",focus:"Both",lic:"Curaçao",url:"goldenbet.com",
+  sb:"100% up to 5,000 NOK / 15,000 THB",sw:"10x (D+B) · 3+ legs at 1.40+ · 30 days",
+  cb:"100% up to 5,000 NOK / 15,000 THB (up to 3 deposits)",cw:"35x (D+B) · Baccarat/Live excluded",type:"Sticky",max:"50 NOK / 175 THB",valid:"30 days",
+  gw:"Strong crypto infrastructure"},
+ {n:17,name:"Bizzo Casino",focus:"Casino",lic:"Curaçao",url:"bizzocasino.com",
+  sb:null,sw:null,
+  cb:"100% up to 1,000 NOK / 3,500 THB + 100 FS (Dig Dig Digger)",cw:"40x bonus",type:"Sticky",max:"50 NOK / 175 THB",valid:"7 days",
+  gw:"Softswiss-powered slots"},
+ {n:18,name:"National Casino",focus:"Casino",lic:"Curaçao",url:"nationalcasino.com",
+  sb:null,sw:null,
+  cb:"100% up to 1,000 NOK / 3,500 THB + 100 FS (Avalon)",cw:"40x bonus · table games excluded",type:"Sticky",max:"50 NOK / 175 THB",valid:"7 days",
+  gw:"Premium live-dealer streaming"},
+ {n:19,name:"ICE Casino",focus:"Casino",lic:"Curaçao",url:"icecasino.com",
+  sb:null,sw:null,
+  cb:"Up to 15,000 NOK / 45,000 THB + 270 FS (4-tier)",cw:"40x bonus / 35x FS · sequential tiers",type:"Sticky",max:"50 NOK / 175 THB",valid:"5 days per tier",
+  gw:"Flexible cashout via intermediaries"},
+ {n:20,name:"Hellspin Casino",focus:"Casino",lic:"Curaçao",url:"hellspin.com",
+  sb:null,sw:null,
+  cb:"100% up to 1,000 NOK / 3,500 THB + 100 FS (Wild Walker)",cw:"40x bonus / 40x FS",type:"Sticky",max:"50 NOK / 175 THB",valid:"7 days",
+  gw:"Cross-compatible crypto + e-wallet cashier"},
+ {n:21,name:"MyStake",focus:"Both",lic:"Curaçao",url:"mystake.com",
+  sb:"100% up to 5,000 NOK / 15,000 THB + 3+1 freebet",sw:"10x (D+B) · 2+ events at 1.40+ · 30 days",
+  cb:"150% up to 2,000 NOK (or 170% crypto up to 10,000 NOK)",cw:"30x (D+B)",type:"Sticky",max:"50 NOK / 175 THB",valid:"30 days",
+  gw:"Mini-games + massive global selection"},
+ {n:22,name:"Bitstarz",focus:"Casino",lic:"Curaçao",url:"bitstarz.com",
+  sb:null,sw:null,
+  cb:"100% up to 1,000 NOK / 1 BTC + 180 FS",cw:"40x bonus",type:"Non-Sticky (Parachute)",max:"50 NOK / 175 THB",valid:"7 days",
+  gw:"Award-winning crypto casino"},
+ {n:23,name:"Melbet",focus:"Both",lic:"Curaçao",url:"melbet.com",
+  sb:"100% up to 1,300 NOK / 4,000 THB",sw:"5x bonus · 3+ events at 1.40+ · 30 days",
+  cb:"Rocket Launch up to 19,000 NOK / 60,000 THB + 290 wager-free spins (5 deposits)",cw:"40x match deposit · sequential",type:"Sticky",max:"50 NOK / 175 THB",valid:"7 days per tier",
+  gw:"Deep alternative payment mechanics"},
+ {n:24,name:"Betwinner",focus:"Both",lic:"Curaçao",url:"betwinner.com",
+  sb:"100% up to 1,200 NOK / 3,500 THB",sw:"5x bonus · 3+ legs at 1.40+ · 30 days",
+  cb:"Up to 15,000 NOK / 45,000 THB + 150 FS (4 steps)",cw:"35x bonus",type:"Sticky",max:"50 NOK / 175 THB",valid:"7 days",
+  gw:"Global bookmaker, localized portals"},
+ {n:25,name:"Ivibet",focus:"Both",lic:"Curaçao",url:"ivibet.com",
+  sb:"100% up to 1,500 NOK / 5,000 THB",sw:"5x bonus · multi 2+ legs at 2.00+ · 7 days",
+  cb:"100% up to 1,000 NOK / 3,500 THB + 120 FS (Bigger Bass)",cw:"40x bonus / 40x FS",type:"Sticky",max:"50 NOK / 175 THB",valid:"7 days",
+  gw:"High payout ratios, all nodes"},
+ {n:26,name:"Leon Bet",focus:"Both",lic:"Kahnawake",url:"leon.bet",
+  sb:"Up to 20 free bets × 200 NOK / 600 THB (pool 4,000 NOK)",sw:"1x net-win rollover · odds 1.75–5.00 · 48h each",
+  cb:"100% up to 5,000 NOK / 15,000 THB",cw:"30x (D+B)",type:"Sticky",max:"50 NOK / 175 THB",valid:"30 days (casino)",
+  gw:"Long-standing brand, good TH/NO terms"},
+ {n:27,name:"Vave",focus:"Both",lic:"Curaçao",url:"vave.com",
+  sb:"100% Sports Cashback up to 1 BTC (≈10,000 NOK / 35,000 THB)",sw:"5x cashback · accas 3+ legs at 2.00+ · 7 days",
+  cb:"100% up to 100 USDT + 100 FS",cw:"40x bonus",type:"Sticky",max:"5 USDT / 50 NOK / 175 THB",valid:"7 days",
+  gw:"Privacy-focused crypto, zero geo-friction"},
+ {n:28,name:"Megapari",focus:"Both",lic:"Curaçao",url:"megapari.com",
+  sb:"100% up to 1,300 NOK / 4,000 THB (or 15% free-bet token)",sw:"5x accas / free-bet 1x on 3-leg at 1.40+ · 30 days",
+  cb:"Up to 16,000 NOK / 50,000 THB + 150 FS",cw:"35x bonus",type:"Sticky",max:"50 NOK / 175 THB",valid:"7 days",
+  gw:"Strong mobile for Asia + EU"},
+ {n:29,name:"Spinanga",focus:"Both",lic:"Curaçao",url:"spinanga.com",
+  sb:"100% up to 2,000 NOK / 5,000 THB",sw:"5x (D+B) · single 2.00 / multi 1.50/leg · 30 days",
+  cb:"100% up to 5,000 NOK / 17,000 THB + 200 FS",cw:"35x (D+B) / 40x FS",type:"Sticky",max:"50 NOK / 175 THB",valid:"10 days",
+  gw:"Immersive layout, universal accounts"},
+ {n:30,name:"Nomini",focus:"Both",lic:"Curaçao",url:"nomini.com",
+  sb:"100% up to 1,000 NOK / 3,500 THB",sw:"5x (D+B) · single 2.00 / multi 1.50/leg · 30 days",
+  cb:"Pick-an-avatar: 100% up to 5,000 NOK / 17,000 THB + 200 FS",cw:"35x (D+B) / 40x FS",type:"Sticky",max:"50 NOK / 175 THB",valid:"10 days",
+  gw:"Gamified sign-up perks"},
+ {n:31,name:"Vulkan Vegas",focus:"Casino",lic:"Curaçao",url:"vulkanvegas.com",
+  sb:null,sw:null,
+  cb:"Up to 15,000 NOK / 45,000 THB + 150 FS (3 deposits)",cw:"40x bonus / 30x FS · forfeits on early payout",type:"Sticky",max:"50 NOK / 175 THB",valid:"5 days per stage",
+  gw:"Rapid processing via int'l agents"},
+ {n:32,name:"Quickwin",focus:"Both",lic:"Curaçao",url:"quickwin.com",
+  sb:"100% up to 2,000 NOK (typical)",sw:"5x (D+B) · single 2.00 / multi 1.50/leg",
+  cb:"100% + free spins (check site)",cw:"35x (D+B)",type:"Sticky",max:"50 NOK / 175 THB",valid:"~10 days",
+  gw:"Specialized F1 / motorsport markets"},
+ {n:33,name:"888starz",focus:"Both",lic:"Curaçao",url:"888starz.club",
+  sb:"100% up to 1,200 NOK / 3,800 THB",sw:"5x bonus · 3+ legs, ≥3 at 1.40+ · 7 days",
+  cb:"Blockchain pkg up to 15,000 NOK / 50,000 THB + 150 FS",cw:"35x bonus",type:"Sticky",max:"50 NOK / 175 THB",valid:"7 days",
+  gw:"Blockchain-integrated, global"},
+ {n:34,name:"Spinzen",focus:"Casino",lic:"Curaçao",url:"spinzen.com",
+  sb:null,sw:null,
+  cb:"270% up to 43,000 NOK / 150,000 THB + 550 FS (4 deposits)",cw:"45x bonus + FS · max win 5× deposit",type:"Sticky",max:"50 NOK / 175 THB",valid:"5 days",
+  gw:"Global slot aggregators, no game locks"},
+ {n:35,name:"Boomerang-bet",focus:"Both",lic:"Curaçao",url:"boomerang-bet.com",
+  sb:"100% up to 1,000 NOK / 3,500 THB",sw:"5x (D+B) · single 2.00 / combo 1.50 · 30 days",
+  cb:"100% up to 5,000 NOK / 17,000 THB + 200 FS",cw:"35x (D+B) / 40x FS",type:"Sticky",max:"50 NOK / 175 THB",valid:"10 days",
+  gw:"Frictionless dual-market payouts"},
+ {n:36,name:"Alawin",focus:"Casino",lic:"Curaçao",url:"alawin.com",
+  sb:"100% up to 1,000 NOK / 3,500 THB (or 200 USDT)",sw:"5x EU / 6x Asia · single 2.00 / multi 1.50 · 30 days",
+  cb:"300% up to 20,000 NOK / 70,000 THB + 300 FS (3 tiers)",cw:"35x (D+B) / 40x FS",type:"Sticky (Skrill/Neteller excluded)",max:"50 NOK / 175 THB",valid:"10 days",
+  gw:"Broad multi-tier bonuses"},
+ {n:37,name:"Westace",focus:"Casino",lic:"Curaçao",url:"westacecasino.com",
+  sb:"100% up to 1,000 NOK / 3,500 THB",sw:"6x bonus · settled markets at 1.50+ · 30 days",
+  cb:"350% up to 160,000 NOK / 550,000 THB + 350 FS (4 stages)",cw:"35x (D+B) / 40x FS · slots 100% / live 10% / table 0%",type:"Sticky",max:"50 NOK / 175 THB",valid:"10 days per stage",
+  gw:"High-roller limits"},
+ {n:38,name:"Casea",focus:"Casino",lic:"Curaçao",url:"caseacasino.com",
+  sb:"100% up to 1,000 NOK / 3,500 THB",sw:"5x (D+B) · single 2.00 / multi 1.50 · 30 days",
+  cb:"100% up to 5,000 NOK / 17,000 THB + 200 FS",cw:"35x (D+B)",type:"Sticky",max:"50 NOK / 175 THB",valid:"10 days",
+  gw:"Optimized live casino streams"},
+ {n:39,name:"Spinlander",focus:"Casino",lic:"Curaçao",url:"spinlander.com",
+  sb:null,sw:null,
+  cb:"300% up to 35,000 NOK / 120,000 THB + 550 FS (code WELCOME25)",cw:"40x bonus · eligible slots only",type:"Sticky",max:"50 NOK / 175 THB",valid:"10 days",
+  gw:"Robust support channels"},
+ {n:40,name:"Millioner",focus:"Casino",lic:"Curaçao",url:"millionercasino.com",
+  sb:null,sw:null,
+  cb:"200% up to 28,000 NOK / 95,000 THB + 100 FS",cw:"35x cash · parachute model",type:"Non-Sticky (Parachute)",max:"50 NOK / 175 THB",valid:"14 days",
+  gw:"High-limit portfolios"},
+ {n:41,name:"Hugo Casino",focus:"Casino",lic:"Curaçao",url:"hugocasino.com",
+  sb:null,sw:null,
+  cb:"225% up to 70,000 NOK / 240,000 THB + 275 FS",cw:"45x bonus",type:"Sticky",max:"50 NOK / 175 THB",valid:"~10 days",
+  gw:"Gamified loyalty levels map"},
+ {n:42,name:"Rollingslots",focus:"Casino",lic:"Curaçao",url:"rollingslots.com",
+  sb:null,sw:null,
+  cb:"300% up to 40,000 NOK + 550 FS",cw:"45x bonus",type:"Sticky",max:"50 NOK / 175 THB",valid:"~10 days",
+  gw:"Crypto-friendly, restricted-jurisdiction terms"},
+ {n:43,name:"CBet",focus:"Both",lic:"Curaçao",url:"cbet.gg",
+  sb:"100% up to 5,000 NOK match offer",sw:"30x bonus balance",
+  cb:"100% up to 5,000 NOK match offer",cw:"30x bonus balance",type:"Sticky",max:"50 NOK / 175 THB",valid:"~10 days",
+  gw:"Crash games + live betting infra"},
+ {n:44,name:"Puntit",focus:"Sports",lic:"In-house",url:"puntit.com",
+  sb:"100% up to 2,000 NOK",sw:"6x rollover on specified multi-markets",
+  cb:null,cw:null,type:"Sticky",max:"50 NOK / 175 THB",valid:"—",
+  gw:"Independent lines, in-house"},
+ {n:45,name:"Winrolla",focus:"Both",lic:"Curaçao",url:"winrolla.com",
+  sb:"100% up to 5,000 NOK",sw:"12x rollover on total sports balance",
+  cb:"100% + free spins (check site)",cw:"Softswiss-powered",type:"Sticky",max:"50 NOK / 175 THB",valid:"—",
+  gw:"Flexible decentralized cashiers"},
+ {n:46,name:"Kingmaker",focus:"Both",lic:"Curaçao",url:"kingmaker.com",
+  sb:"100% up to 2,000 NOK",sw:"10x rollover (standard terms)",
+  cb:"100% + free spins (check site)",cw:"Altenar integration",type:"Sticky",max:"50 NOK / 175 THB",valid:"—",
+  gw:"Multi-vertical integration"},
+ {n:47,name:"Cazimbo",focus:"Both",lic:"Curaçao",url:"cazimbo.com",
+  sb:"100% up to 2,000 NOK",sw:"5x clearance on designated odds",
+  cb:"100% + free spins (check site)",cw:"Altenar",type:"Sticky",max:"50 NOK / 175 THB",valid:"—",
+  gw:"Reliable mirroring networks"},
+ {n:48,name:"Bankonbet",focus:"Both",lic:"Curaçao",url:"bankonbet.com",
+  sb:"100% up to 2,000 NOK",sw:"5x (Dep+Bonus) rollover",
+  cb:"100% + free spins (check site)",cw:"Altenar turnkey",type:"Sticky",max:"50 NOK / 175 THB",valid:"—",
+  gw:"Extensive alternative payment array"},
+ {n:49,name:"CampeonBet",focus:"Both",lic:"Curaçao",url:"campeonbet.com",
+  sb:"100% up to 1,500 NOK",sw:"5x wagering on sports selections",
+  cb:"100% + free spins (check site)",cw:"Nexto Gaming",type:"Sticky",max:"50 NOK / 175 THB",valid:"—",
+  gw:"Multi-provider gaming library"},
+ {n:50,name:"PlayZilla",focus:"Both",lic:"Curaçao",url:"playzilla.com",
+  sb:"100% up to 1,000 NOK",sw:"10x rollover on settled selections",
+  cb:"100% + free spins (check site)",cw:"Altenar engine",type:"Sticky",max:"50 NOK / 175 THB",valid:"—",
+  gw:"Low rolling terms, good live betting"},
+
+ /* ===== Thailand-focused index (Asian turnover model, local rails) ===== */
+ {n:51,name:"BK8",focus:"Both",lic:"Anjouan (sports) / Curaçao (casino)",url:"",region:"TH",
+  sb:"130% up to 5,000 THB",sw:"12x turnover (Dep+Bonus) · odds <1.50 excluded",spv:"BK8 Sports, Saba Sports, CMD368",
+  cb:"100% Slots / 50% Live welcome",cw:"12x slots / 20x live casino",cpv:"Evolution, Sexy Baccarat, Dream Gaming",
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"PromptPay, TrueMoney · Thai-speaking live dealers · Muay Thai stadium odds"},
+ {n:52,name:"We88",focus:"Both",lic:"Curaçao Gaming Control",url:"",region:"TH",
+  sb:"100% up to 5,000 THB",sw:"12x turnover · odds <1.50 excluded",spv:"SBOBET, Saba Sports, CMD368",
+  cb:"100% up to 5,000 THB",cw:"12x–25x turnover",cpv:"Pragmatic Play, Sexy Baccarat, Playtech",
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"Steven Gerrard brand partnership · instant line comparison · 4D Lotto · 'WeSpin' feature"},
+ {n:53,name:"12Play",focus:"Both",lic:"Curaçao / PAGCOR",url:"",region:"TH",
+  sb:"150% Sports welcome bonus",sw:"12x–15x turnover · odds <1.50 excluded",spv:"SBOBET, Saba Sports, TF Gaming",
+  cb:"100% up to 5,000 THB",cw:"15x turnover",cpv:"Evolution, Pragmatic Play, PG Soft",
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"Dedicated Android app · biometric login · ONE Championship odds · daily turnover rebates"},
+ {n:54,name:"Uea8",focus:"Both",lic:"Curaçao Gaming Board",url:"",region:"TH",
+  sb:"100% up to 5,000 THB",sw:"15x turnover · odds <1.50 excluded",spv:"Saba Sports, CMD368, SBOBET",
+  cb:"120% Slots / 50% Live welcome",cw:"25x slots / 35x live casino",cpv:"Pragmatic Play, PG Soft, Jili Games",
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"Highest PromptPay deposit ceilings (up to 2M THB) · daily reload bonuses"},
+ {n:55,name:"Roll88",focus:"Both",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:"100% up to ฿888 + 88 Free Spins",sw:"10x turnover",spv:"Roll88 Sports, Saba Sports",
+  cb:"100% up to ฿888 + 88 Free Spins",cw:"20x wagering",cpv:"Pragmatic Play, PG Soft, Jili",
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"THB default currency · localized bank wire transfers · simple navigation"},
+ {n:56,name:"Siam369",focus:"Both",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:"100% Welcome offer",sw:"12x turnover",spv:"Localized Sportsbook, CMD368",
+  cb:"120% up to 6,000 THB",cw:"25x wagering",cpv:"Pragmatic, Asia Gaming, SA Gaming",
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"Fully translated interface · Thai League 1 focus · Pok Deng / Sic Bo / Baccarat"},
+ {n:57,name:"Siam191",focus:"Both",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:"100% up to 1,000 THB",sw:"15x turnover",spv:"Esportsbook, Saba Sports",
+  cb:"100% up to 1,000 THB",cw:"20x wagering",cpv:"PG Soft, Pragmatic, Spadegaming",
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"Interactive chat feed · specialized esports markets · beginner-simplified UI"},
+ {n:58,name:"UFABET",focus:"Both",lic:"Curaçao / PAGCOR",url:"",region:"TH",
+  sb:"100% match up to $100 equiv.",sw:"12x turnover",spv:"UFABET Sports",
+  cb:"100% up to 2,000 THB equiv.",cw:"25x wagering",cpv:"Asia Gaming, SA Gaming, Evolution",
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"High local reputation · embedded live sports streaming · straightforward layout"},
+ {n:59,name:"BetGoat",focus:"Both",lic:"Government of Anjouan",url:"",region:"TH",
+  sb:"320% up to $2,000 + $20 Free Bets",sw:"25x turnover",spv:"BetGoat, Saba Sports",
+  cb:"380% Casino match up to $4,500",cw:"35x wagering",cpv:"Pragmatic, Evolution, Club M88",
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"Crypto-focused backend · competitive margins · 0.8% live casino rebate · modern UI"},
+ {n:60,name:"1xBet (TH)",focus:"Sports",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:"100% up to 4,000 THB",sw:"5x accumulator turnover",spv:"In-house proprietary, SBOBET",
+  cb:null,cw:null,cpv:null,
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"TrueMoney support · specialized World Cup 2026 events"},
+ {n:61,name:"Dafabet",focus:"Sports",lic:"Curaçao / First Cagayan",url:"",region:"TH",
+  sb:"160% match up to $100",sw:"10x–15x Deposit + Bonus",spv:"Dafa Sports, OW Sports",
+  cb:null,cw:null,cpv:null,
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"Decades of market experience · sharp Asian Handicap odds"},
+ {n:62,name:"SBOTOP",focus:"Sports",lic:"Isle of Man Gambling Comm.",url:"",region:"TH",
+  sb:"100% up to 1,000 THB",sw:"5x turnover",spv:"SBOTOP, SBOBET",
+  cb:null,cw:null,cpv:null,
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"Market-leading handicap liquidity · live streaming"},
+ {n:63,name:"M88",focus:"Sports",lic:"PAGCOR (Philippines)",url:"",region:"TH",
+  sb:"188% match up to ~RM1,288 equiv.",sw:"15x turnover",spv:"MSports, Saba Sports",
+  cb:null,cw:null,cpv:null,
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"High-roller limits · local bank cashout in ~5 hours"},
+ {n:64,name:"W88",focus:"Sports",lic:"First Cagayan",url:"",region:"TH",
+  sb:"100% match up to ~RM1,288 equiv.",sw:"15x–18x turnover",spv:"Saba Sports, CMD368",
+  cb:null,cw:null,cpv:null,
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"Strong brand partnerships · comprehensive VIP program"},
+ {n:65,name:"Fun88",focus:"Sports",lic:"Isle of Man / PAGCOR",url:"",region:"TH",
+  sb:"488% match up to ~₹16,000 equiv.",sw:"35x turnover",spv:"SABA Sports, Fun88",
+  cb:null,cw:null,cpv:null,
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"Prompt local withdrawals · niche Muay Thai markets"},
+ {n:66,name:"188BET",focus:"Sports",lic:"Isle of Man",url:"",region:"TH",
+  sb:"100% up to ~3,333,000 VND equiv.",sw:"1x deposit rollover",spv:"188BET Sports",
+  cb:null,cw:null,cpv:null,
+  type:"Sticky (low rollover)",max:"",valid:"",
+  local:"Super-fast transactions · SSL 128-bit encryption"},
+ {n:67,name:"22Bet (TH)",focus:"Sports",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:"100% welcome match up to 1,000 THB",sw:"5x accumulator turnover",spv:"22Bet Sports",
+  cb:null,cw:null,cpv:null,
+  type:"Sticky (turnover)",max:"",valid:"",
+  local:"Straightforward signup · highly diverse banking options"},
+ {n:68,name:"Nova88",focus:"Sports",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:"Automatic smart-contract payouts",sw:"No KYC / zero rollover",spv:"Nova88 Sports",
+  cb:null,cw:null,cpv:null,
+  type:"No rollover",max:"",valid:"",
+  local:"Decentralized model · zero ID verification"},
+ {n:69,name:"Betway",focus:"Sports",lic:"Malta Gaming Authority",url:"",region:"TH",
+  sb:"100% Free Bet up to $200",sw:"1x–5x turnover",spv:"Betway Sports",
+  cb:null,cw:null,cpv:null,
+  type:"Sticky (low rollover)",max:"",valid:"",
+  local:"Elite international licensing · stable mobile app"},
+ {n:70,name:"Stake (TH)",focus:"Sports",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:"10% Lifetime Rakeback",sw:"No rollover",spv:"Stake Sports",
+  cb:null,cw:null,cpv:null,
+  type:"No rollover",max:"",valid:"",
+  local:"VPN-friendly · absolute anonymity via crypto rails"},
+ {n:71,name:"HappyLuke",focus:"Casino",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"200% up to 6,000 THB ($200)",cw:"40x wagering",cpv:"Playtech, Evolution, Microgaming",
+  type:"Sticky",max:"",valid:"",
+  local:"Coin-loyalty shop · exclusive live dealer tables"},
+ {n:72,name:"Empire777",focus:"Casino",lic:"Curaçao / PAGCOR",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"100% match up to 1,000 THB",cw:"30x wagering",cpv:"Evolution, Gameplay Interactive",
+  type:"Sticky",max:"",valid:"",
+  local:"Local support links · built-in session self-limits"},
+ {n:73,name:"LiveCasinoHouse",focus:"Casino",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"200% match up to $2,000 equiv.",cw:"40x wagering",cpv:"Evolution, Ezugi, Sexy Baccarat",
+  type:"Sticky",max:"",valid:"",
+  local:"Fully optimized for real-dealer table gameplay"},
+ {n:74,name:"Huc99",focus:"Casino",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"100% register / free-trial bonus",cw:"10x wagering",cpv:"PG Soft, Jili Games, Spadegaming",
+  type:"Sticky",max:"",valid:"",
+  local:"Slot-focused lobby · low minimum deposits"},
+ {n:75,name:"MS.Slot",focus:"Casino",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"150% Slots bonus up to 5,000 THB",cw:"25x wagering",cpv:"Pragmatic Play, PG Soft",
+  type:"Sticky",max:"",valid:"",
+  local:"Extremely high withdrawal ceilings for VIP tiers"},
+ {n:76,name:"I828",focus:"Casino",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"100% up to 3,000 THB",cw:"25x wagering",cpv:"Evolution, Pragmatic Play",
+  type:"Sticky",max:"",valid:"",
+  local:"Exceptional stable performance on mobile devices"},
+ {n:77,name:"Thrill",focus:"Casino",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"Up to 70% Rakeback + 10% Cashback",cw:"No rollover",cpv:"Evolution, Pragmatic Play",
+  type:"No rollover",max:"",valid:"",
+  local:"Instant crypto payout processing times"},
+ {n:78,name:"Winz.io",focus:"Casino",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"Up to 10,000 USDT 'Wheel of Winz'",cw:"Zero wagering on spins",cpv:"Evolution, Pragmatic Play, Play'n GO",
+  type:"Zero wagering (spins)",max:"",valid:"",
+  local:"Robust catalog of 6,000+ titles"},
+ {n:79,name:"Cloudbet",focus:"Casino",lic:"Curaçao / Montenegro",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"100% up to 2,500 USDT + 200 FS",cw:"30% rakeback release model",cpv:"Evolution, Pragmatic Play, NetEnt",
+  type:"Rakeback release",max:"",valid:"",
+  local:"Long track record of secure cryptocurrency banking"},
+ {n:80,name:"BC.Game (TH)",focus:"Casino",lic:"Curaçao eGaming",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"120% match up to 20,000 BCD",cw:"35x wagering",cpv:"Pragmatic, Evolution, PG Soft",
+  type:"Sticky",max:"",valid:"",
+  local:"Support for 90+ distinct cryptocurrencies"},
+
+ /* ===== Additional Thai-compatible crypto casinos (license/URL not supplied — verify) ===== */
+ {n:81,name:"K8 Casino",focus:"Casino",lic:"Not listed — verify",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"100% up to $100",cw:"30x bonus amount",cpv:null,
+  type:"Sticky",max:"",valid:"",
+  local:"Brand also operates a sportsbook (sports terms not supplied here)"},
+ {n:82,name:"Bitcasino.io",focus:"Casino",lic:"Not listed — verify",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"Up to 1,500 USDT",cw:"No wagering (cashback / loyalty model)",cpv:null,
+  type:"No rollover",max:"",valid:"",
+  local:"Crypto-native; rewards via cashback & loyalty rather than a match bonus"},
+ {n:83,name:"Mostbet",focus:"Casino",lic:"Not listed — verify",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"Up to €1,750 across 5 deposits",cw:"30x–50x bonus sum",cpv:null,
+  type:"Sticky",max:"",valid:"",
+  local:"Brand also operates a large sportsbook (sports terms not supplied here)"},
+ {n:84,name:"FortuneJack",focus:"Casino",lic:"Not listed — verify",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"130% up to 1.3 BTC + 300 Free Spins",cw:"30x–40x (standard industry)",cpv:null,
+  type:"Sticky",max:"",valid:"",
+  local:"Established crypto casino"},
+ {n:85,name:"7BitCasino",focus:"Casino",lic:"Not listed — verify",url:"",region:"TH",
+  sb:null,sw:null,spv:null,
+  cb:"325% up to 5.25 BTC + 250 Free Spins",cw:"35x bonus amount",cpv:null,
+  type:"Sticky",max:"",valid:"",
+  local:"Established crypto casino"}
+];
+
+/* ----------  STATE / STORAGE  ---------- */
+const LS_KEY = "betTrackerV1";
+const STATUS_META = {
+  none:      {label:"Not started", cls:"s-none"},
+  registered:{label:"Registered",  cls:"s-reg"},
+  deposited: {label:"Deposited",   cls:"s-dep"},
+  wagering:  {label:"Wagering",    cls:"s-wag"},
+  completed: {label:"Completed",   cls:"s-done"},
+  withdrawn: {label:"Withdrawn",   cls:"s-with"},
+  failed:    {label:"Failed/closed",cls:"s-fail"}
+};
+let track = load();
+function load(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return {}} }
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(track)); flashSaved(); }
+function rec(n){ return track[n] || (track[n]={status:"none",deposit:"",bonus:"",wager:"",result:"",date:"",notes:"",kyc:false}); }
+let view = localStorage.getItem("betTrackerView")||"cards";
+let expanded = new Set();   // platform #s expanded inline in list view
+
+let savedTimer;
+function flashSaved(){ const p=document.getElementById("savedPill"); p.classList.add("show");
+  clearTimeout(savedTimer); savedTimer=setTimeout(()=>p.classList.remove("show"),900); }
+
+/* ----------  FILTER STATE  ---------- */
+let filters = {q:"", focus:"all", region:"all", status:"all", onlyReg:false, ready:false, sort:"num"};
+
+/* ----------  RENDER  ---------- */
+function num(v){ const f=parseFloat(String(v).replace(/[^0-9.\-]/g,"")); return isNaN(f)?0:f; }
+
+function fmt(v){ return v===0?"0":(v>0?"+"+v:String(v)); }
+function fmtN(n){ return Number(n).toLocaleString(); }
+
+/* ---- bonus parsing & scoring (computed from the data text) ---- */
+function parsePct(t){ if(!t) return null; const m=String(t).match(/(\d+(?:\.\d+)?)\s*%/g);
+  return m?Math.max(...m.map(x=>parseFloat(x))):null; }
+function parseWagerNum(t){ if(!t) return null; const m=String(t).match(/(\d+(?:\.\d+)?)\s*x/ig);
+  return m?Math.max(...m.map(x=>parseFloat(x))):null; }
+
+const _metaCache={};
+function metrics(d){
+  if(_metaCache[d.n]) return _metaCache[d.n];
+  const sp=parsePct(d.sb), cp=parsePct(d.cb);
+  const sw=parseWagerNum(d.sw), cw=parseWagerNum(d.cw);
+  const noWager=/no rollover|zero wager|wager-?free|zero\b/i.test((d.sw||"")+" "+(d.cw||"")+" "+(d.type||""));
+  const maxPct = Math.max(sp||0,cp||0) || null;
+  const sumPct = ((sp||0)+(cp||0)) || null;
+  let wagers=[sw,cw].filter(v=>v!=null);
+  let minWager = wagers.length?Math.min(...wagers):null;
+  if(noWager) minWager=0;
+  const offers=[];
+  if(sp!=null) offers.push(sp/(sw||1));
+  if(cp!=null) offers.push(cp/(cw||1));
+  const value = offers.length?Math.max(...offers):null;
+  return _metaCache[d.n]={maxPct,sumPct,minWager,value,noWager};
+}
+
+function renderStats(){
+  const all = DATA.map(d=>rec(d.n));
+  const reg = all.filter(r=>r.status!=="none").length;
+  const kyc = all.filter(r=>r.kyc).length;
+  const dep = all.reduce((s,r)=>s+num(r.deposit),0);
+  const bon = all.reduce((s,r)=>s+num(r.bonus),0);
+  const res = all.reduce((s,r)=>s+num(r.result),0);
+  const ready = all.filter(r=>r.status!=="none"&&r.kyc).length;
+  const stats=[
+    {k:"Platforms",v:DATA.length},
+    {k:"Registered",v:reg},
+    {k:"KYC verified",v:kyc},
+    {k:"Ready to bet",v:ready},
+    {k:"Total deposited",v:dep.toLocaleString()},
+    {k:"Bonuses claimed",v:bon.toLocaleString()},
+    {k:"Net result",v:fmt(res), cls:res>0?"pos":(res<0?"neg":"")}
+  ];
+  document.getElementById("stats").innerHTML = stats.map(s=>
+    `<div class="stat"><div class="k">${s.k}</div><div class="v ${s.cls||""}">${s.v}</div></div>`).join("");
+}
+
+function kv(k,v){ return v?`<div class="kv"><span class="kk">${k}</span><span class="vv">${v}</span></div>`:""; }
+
+function termBlock(title,cls,bonus,wager,extra,prov){
+  if(!bonus) return `<div class="term ${cls}"><h4>${title}</h4><div class="na">Not offered on this platform.</div></div>`;
+  return `<div class="term ${cls}"><h4>${title}</h4>
+    ${kv("Bonus",bonus)}${kv("Wagering",wager)}${kv("Providers",prov)}${extra||""}</div>`;
+}
+
+function parseProg(t){
+  if(!t) return null;
+  const nums=String(t).match(/[\d][\d.,]*/g);
+  if(!nums||nums.length<2) return null;
+  const done=parseFloat(nums[0].replace(/,/g,"")), target=parseFloat(nums[1].replace(/,/g,""));
+  if(isNaN(done)||isNaN(target)||target<=0) return null;
+  return {done,target,pct:Math.max(0,Math.min(100,done/target*100))};
+}
+function progressHTML(w){
+  const p=parseProg(w);
+  if(!p) return `<div class="bar-empty">Type “done / target” above (e.g. 12000 / 35000) to see progress.</div>`;
+  const cls=p.pct>=100?"done":(p.pct>=67?"hi":(p.pct>=34?"mid":"lo"));
+  return `<div class="bar"><div class="bar-fill ${cls}" style="width:${p.pct}%"></div></div>
+    <div class="bar-label">${p.pct>=100?"✅ Wagering cleared":Math.round(p.pct)+"% cleared"} — ${fmtN(p.done)} / ${fmtN(p.target)}</div>`;
+}
+
+function card(d){
+  const r = rec(d.n);
+  const m = metrics(d);
+  const sm = STATUS_META[r.status]||STATUS_META.none;
+  const resNum = num(r.result);
+  const resCls = r.result===""?"":(resNum>0?"result-pos":(resNum<0?"result-neg":""));
+  const typeCls = /non-?sticky|no rollover|wager-?free|zero/i.test(d.type)?"nonsticky":(/sticky|turnover|rakeback/i.test(d.type)?"sticky":"");
+  const region = d.region||"NO/TH";
+  const regCls = region==="TH"?"th":"cross";
+  const ready = isReady(r);
+  const casinoExtra = d.type?kv("Type",d.type)+kv("Max bet",d.max)+kv("Valid",d.valid):"";
+
+  return `<div class="card ${r.status!=="none"?"registered":""} ${ready?"ready":""}" data-n="${d.n}">
+    <div class="card-head">
+      <div>
+        <div class="name"><span class="num">#${d.n}</span> ${d.name}</div>
+        <div class="chips">
+          <span class="chip region ${regCls}">${region==="TH"?"🇹🇭 TH market":"🇳🇴🇹🇭 NO+TH"}</span>
+          <span class="chip focus">${d.focus==="Both"?"Sports + Casino":d.focus}</span>
+          <span class="chip lic">${d.lic}</span>
+          ${typeCls?`<span class="chip ${typeCls}">${d.type.replace(/\s*\(.*\)/,"")}</span>`:""}
+        </div>
+        <div class="url">${d.url
+          ?`🔗 <a href="https://${d.url}" target="_blank" rel="noopener">${d.url}</a>`
+          :`<span style="color:var(--muted)">🔒 URL not listed — verify the official domain yourself</span>`}</div>
+      </div>
+      <div class="head-right">
+        <span class="statusbadge ${sm.cls}">${sm.label}</span>
+        ${ready?`<span class="livetag" title="Registered + KYC done — OPEN to the auto odds-scanner">🟢 LIVE · scanner</span>`:""}
+      </div>
+    </div>
+
+    <div class="body">
+      <div class="metrics">
+        <span class="met"><b>${m.maxPct?m.maxPct+"%":"—"}</b> top bonus</span>
+        <span class="met"><b>${m.sumPct?m.sumPct+"%":"—"}</b> sum</span>
+        <span class="met"><b>${m.noWager?"0× ✓":(m.minWager!=null?m.minWager+"×":"—")}</b> min wager</span>
+        <span class="met val" title="bonus % ÷ wagering — higher is more generous"><b>${m.value!=null?m.value.toFixed(1):"—"}</b> value</span>
+      </div>
+      <div class="terms">
+        ${termBlock("⚽ Sports bonus","sports",d.sb,d.sw,"",d.spv)}
+        ${termBlock("🎰 Casino bonus","casino",d.cb,d.cw,casinoExtra,d.cpv)}
+        ${d.gw?`<div class="term"><h4>💳 Payment / gateway</h4><div class="kv"><span class="vv">${d.gw}</span></div></div>`:""}
+        ${d.local?`<div class="term"><h4>🇹🇭 Localization &amp; payments</h4><div class="kv"><span class="vv">${d.local}</span></div></div>`:""}
+      </div>
+    </div>
+
+    <div class="track">
+      <h4>📒 My tracking</h4>
+      <div class="grid2">
+        <div>
+          <label>Status</label>
+          <select class="field t" data-f="status">
+            ${Object.entries(STATUS_META).map(([k,m])=>
+              `<option value="${k}" ${r.status===k?"selected":""}>${m.label}</option>`).join("")}
+          </select>
+        </div>
+        <div>
+          <label>Date registered</label>
+          <input type="date" class="field t" data-f="date" value="${r.date||""}">
+        </div>
+        <div>
+          <label>Deposit amount</label>
+          <input class="field t" data-f="deposit" placeholder="e.g. 1000" value="${r.deposit||""}">
+        </div>
+        <div>
+          <label>Bonus claimed</label>
+          <input class="field t" data-f="bonus" placeholder="e.g. 1000" value="${r.bonus||""}">
+        </div>
+        <div>
+          <label>Net result (+/−)</label>
+          <input class="field t ${resCls}" data-f="result" placeholder="e.g. +850 or -1000" value="${r.result||""}">
+        </div>
+        <div class="full">
+          <label>Wagering progress <span class="hint">— enter as “done / target”, e.g. 12000 / 35000</span></label>
+          <input class="field t" data-f="wager" placeholder="e.g. 12000 / 35000" value="${r.wager||""}">
+          <div class="progress" data-prog>${progressHTML(r.wager)}</div>
+        </div>
+        <div class="full">
+          <label class="trk-chk"><input type="checkbox" class="t" data-f="kyc" ${r.kyc?"checked":""}> 🪪 KYC verified / documents approved</label>
+        </div>
+        <div class="full">
+          <label>Notes (codes used, KYC status, withdrawal method…)</label>
+          <textarea class="field t" data-f="notes" placeholder="Anything you want to remember…">${r.notes||""}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function applyFilters(list){
+  let out = list.filter(d=>{
+    const r = rec(d.n);
+    if(filters.focus!=="all" && d.focus!==filters.focus) return false;
+    if(filters.region!=="all" && (d.region||"NO/TH")!==filters.region) return false;
+    if(filters.onlyReg && r.status==="none") return false;
+    if(filters.ready && !isReady(r)) return false;
+    if(filters.status!=="all" && r.status!==filters.status) return false;
+    if(filters.q){
+      const hay=(d.name+" "+d.lic+" "+d.focus+" "+(d.region||"")+" "+(d.gw||"")+" "+(d.local||"")+" "+
+        (d.spv||"")+" "+(d.cpv||"")+" "+(d.sw||"")+" "+(d.cw||"")).toLowerCase();
+      if(!hay.includes(filters.q.toLowerCase())) return false;
+    }
+    return true;
+  });
+  out.sort((a,b)=>{
+    if(filters.sort==="name") return a.name.localeCompare(b.name);
+    if(filters.sort==="result") return num(rec(b.n).result)-num(rec(a.n).result);
+    if(filters.sort==="deposit") return num(rec(b.n).deposit)-num(rec(a.n).deposit);
+    if(filters.sort==="pct") return (metrics(b).maxPct||-1)-(metrics(a).maxPct||-1);
+    if(filters.sort==="sum") return (metrics(b).sumPct||-1)-(metrics(a).sumPct||-1);
+    if(filters.sort==="value") return (metrics(b).value||-1)-(metrics(a).value||-1);
+    if(filters.sort==="lowwager"){
+      const aw=metrics(a).minWager, bw=metrics(b).minWager;
+      return (aw==null?Infinity:aw)-(bw==null?Infinity:bw);
+    }
+    return a.n-b.n;
+  });
+  return out;
+}
+
+function isReady(r){ return r.status!=="none" && !!r.kyc; }   // registered + KYC = exposed to odds-scanner
+
+function listView(list){
+  const rows = list.map(d=>{
+    const r=rec(d.n), m=metrics(d), sm=STATUS_META[r.status]||STATUS_META.none;
+    const reg = r.status!=="none", open = expanded.has(d.n), ready = isReady(r);
+    const wag = m.noWager?"0× ✓":(m.minWager!=null?m.minWager+"×":"—");
+    const sum = m.sumPct?m.sumPct+"%":(m.maxPct?m.maxPct+"%":"—");
+    let html = `<tr class="lrow ${reg?"reg":""} ${r.kyc?"kyc":""} ${open?"open":""}" data-n="${d.n}">
+      <td class="c kyccell"><input type="checkbox" class="lreg" ${reg?"checked":""} title="Registered — account ready to bet"></td>
+      <td class="c"><input type="checkbox" class="lkyc" ${r.kyc?"checked":""} title="KYC verified / documents approved"></td>
+      <td class="muted">#${d.n}</td>
+      <td class="lname"><span class="chev">${open?"▾":"▸"}</span> ${d.name}
+        ${ready?`<span class="livetag" title="Registered + KYC done — OPEN to the auto odds-scanner">🟢 LIVE</span>`:""}
+        <span class="lchips">${d.region==="TH"?"🇹🇭 TH":"🇳🇴🇹🇭 NO+TH"} · ${d.focus==="Both"?"Sports+Casino":d.focus} · ${d.lic}</span></td>
+      <td class="lbonus">${sum}</td>
+      <td class="lwager">${wag}</td>
+      <td><span class="statusbadge ${sm.cls}">${sm.label}</span></td>
+    </tr>`;
+    if(open) html += `<tr class="ldetail"><td colspan="7"><div class="ldetail-wrap">${card(d)}</div></td></tr>`;
+    return html;
+  }).join("");
+  return `<table class="ltable"><thead><tr>
+      <th title="Registered / available to bet">✅ Reg</th>
+      <th title="KYC verified">🪪 KYC</th>
+      <th>#</th><th>Platform — click row to expand</th><th>Bonus&nbsp;Σ</th><th>Wager</th><th>Status</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function bindList(){
+  document.querySelectorAll(".lrow").forEach(row=>{
+    const n=+row.dataset.n;
+    row.querySelector(".lreg").addEventListener("change",e=>{
+      const r=rec(n);
+      r.status = e.target.checked ? (r.status==="none"?"registered":r.status) : "none";
+      save(); render();
+    });
+    row.querySelector(".lkyc").addEventListener("change",e=>{
+      rec(n).kyc=e.target.checked; save(); render();
+    });
+    row.addEventListener("click",e=>{
+      if(e.target.closest("input,label,a,select,textarea,button")) return; // don't toggle on controls
+      expanded.has(n)?expanded.delete(n):expanded.add(n);
+      render();
+    });
+  });
+  document.querySelectorAll(".ldetail .card").forEach(bindCardEl); // wire the embedded full card
+}
+
+function render(){
+  renderStats();
+  const list = applyFilters(DATA);
+  const grid = document.getElementById("grid");
+  if(view==="list"){
+    grid.classList.add("listmode");
+    grid.innerHTML = listView(list);
+    bindList();
+  } else {
+    grid.classList.remove("listmode");
+    grid.innerHTML = list.map(card).join("");
+    bindCards();
+  }
+  document.getElementById("empty").style.display = list.length?"none":"block";
+}
+
+function bindCardEl(c){
+  const n = +c.dataset.n;
+  c.querySelectorAll(".t").forEach(inp=>{
+    inp.addEventListener("change",()=>commit(c,n));
+    if(inp.tagName==="TEXTAREA"||inp.type==="text"||inp.type==="date")
+      inp.addEventListener("input",()=>{ if(inp.dataset.f!=="status") liveCommit(n,inp); });
+  });
+}
+function bindCards(){ document.querySelectorAll(".card").forEach(bindCardEl); }
+function liveCommit(n,inp){
+  const r=rec(n); r[inp.dataset.f]=inp.value; save(); renderStatsOnly();
+  if(inp.dataset.f==="wager"){
+    const card=inp.closest(".card"); const holder=card&&card.querySelector("[data-prog]");
+    if(holder) holder.innerHTML=progressHTML(inp.value);
+  }
+}
+function renderStatsOnly(){ renderStats(); }
+function commit(card,n){
+  const r=rec(n);
+  card.querySelectorAll(".t").forEach(inp=>{ r[inp.dataset.f]= inp.type==="checkbox"?inp.checked:inp.value; });
+  save();
+  render(); // re-render so status badge / sort / stats refresh
+}
+
+/* ----------  CONTROLS  ---------- */
+document.getElementById("search").addEventListener("input",e=>{filters.q=e.target.value;render();});
+document.getElementById("statusFilter").addEventListener("change",e=>{filters.status=e.target.value;render();});
+document.getElementById("onlyReg").addEventListener("change",e=>{filters.onlyReg=e.target.checked;render();});
+document.getElementById("readyOnly").addEventListener("change",e=>{filters.ready=e.target.checked;render();});
+document.getElementById("sortBy").addEventListener("change",e=>{filters.sort=e.target.value;render();});
+document.querySelectorAll("#focusSeg button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#focusSeg button").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); filters.focus=b.dataset.f; render();
+}));
+document.querySelectorAll("#regionSeg button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#regionSeg button").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); filters.region=b.dataset.r; render();
+}));
+document.querySelectorAll("#viewSeg button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#viewSeg button").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); view=b.dataset.v; localStorage.setItem("betTrackerView",view); render();
+}));
+// reflect persisted view on load
+document.querySelectorAll("#viewSeg button").forEach(b=>
+  b.classList.toggle("active", b.dataset.v===view));
+
+/* export / import / reset */
+document.getElementById("exportJson").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(track,null,2)],{type:"application/json"});
+  downloadBlob(blob,"bet-tracker-data.json");
+});
+document.getElementById("exportCsv").addEventListener("click",()=>{
+  const head=["#","Platform","Market","Focus","License","URL","Registered","KYC","ScannerReady",
+    "Status","DateRegistered","Deposit","BonusClaimed","Wagering","NetResult","Notes"];
+  const rows=DATA.map(d=>{const r=rec(d.n);return [
+    d.n,d.name,d.region||"NO/TH",d.focus,d.lic,d.url,
+    r.status!=="none"?"Yes":"No", r.kyc?"Yes":"No", isReady(r)?"Yes":"No",
+    (STATUS_META[r.status]||{}).label||r.status,
+    r.date,r.deposit,r.bonus,r.wager,r.result,(r.notes||"").replace(/\n/g," ")
+  ].map(csv).join(",");});
+  const blob=new Blob([head.join(",")+"\n"+rows.join("\n")],{type:"text/csv"});
+  downloadBlob(blob,"bet-tracker-export.csv");
+});
+function csv(v){ v=String(v??""); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+function downloadBlob(blob,name){
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+document.getElementById("scannerFeed").addEventListener("click",()=>{
+  const open = DATA.filter(d=>isReady(rec(d.n))).map(d=>{
+    const m=metrics(d), r=rec(d.n);
+    return {
+      id:d.n, name:d.name, open:true, market:d.region||"NO/TH", focus:d.focus,
+      license:d.lic, url:d.url||null,
+      bonusMaxPct:m.maxPct, bonusSumPct:m.sumPct, minWager:m.minWager, bonusValue:m.value,
+      sportsBonus:d.sb||null, casinoBonus:d.cb||null,
+      status:(STATUS_META[r.status]||{}).label||r.status
+    };
+  });
+  const feed={generatedAt:new Date().toISOString(), openCount:open.length, platforms:open};
+  downloadBlob(new Blob([JSON.stringify(feed,null,2)],{type:"application/json"}),"scanner-open-casinos.json");
+  if(!open.length) alert("No platforms are LIVE yet — tick both Registered and KYC on a site first.");
+});
+document.getElementById("importBtn").addEventListener("click",()=>document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{ const obj=JSON.parse(rd.result); if(typeof obj==="object"){track=obj;save();render();alert("Data imported.");} }
+    catch(err){ alert("Could not read that file."); } };
+  rd.readAsText(f); e.target.value="";
+});
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  if(confirm("Clear ALL your tracking data? Platform info stays; only your notes/results are wiped.")){
+    track={}; localStorage.removeItem(LS_KEY); render();
+  }
+});
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bonus Hunter — New Player Campaign</title>
+<style>
+  :root{
+    --bg:#0c0f17; --panel:#141925; --panel2:#1b2230; --border:#28314a;
+    --text:#e6ebf5; --muted:#8794ad; --accent:#5b8cff; --accent2:#36d399;
+    --warn:#fbbf24; --bad:#f87171; --good:#34d399; --chip:#222b40; --gold:#ffd166;
+    --shadow:0 8px 28px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",Roboto,system-ui,Arial,sans-serif;background:
+    radial-gradient(1200px 600px at 80% -10%, #16203a 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, #1a1430 0%, transparent 55%),
+    var(--bg);color:var(--text);min-height:100vh}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  header{padding:24px 28px 6px;max-width:1300px;margin:0 auto}
+  h1{margin:0 0 4px;font-size:25px;letter-spacing:.2px;display:flex;align-items:center;gap:10px}
+  .sub{color:var(--muted);font-size:13px;line-height:1.55;max-width:880px}
+
+  /* ---- HUD ---- */
+  .hud{position:sticky;top:0;z-index:40;background:rgba(12,15,23,.9);backdrop-filter:blur(9px);
+    border-bottom:1px solid var(--border);margin-top:14px}
+  .hud-in{max-width:1300px;margin:0 auto;padding:12px 28px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  .hstat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:9px 15px;min-width:120px;box-shadow:var(--shadow)}
+  .hstat .k{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .hstat .v{font-size:20px;font-weight:800;margin-top:2px}
+  .v.pos{color:var(--good)} .v.neg{color:var(--bad)} .v.gold{color:var(--gold)}
+  .xpwrap{flex:1;min-width:200px}
+  .xpbar{height:12px;background:var(--panel2);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-top:6px}
+  .xpfill{height:100%;background:linear-gradient(90deg,#5b8cff,#36d399);width:0;transition:width .5s}
+  .lvl{font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+  .badges{display:flex;gap:6px;flex-wrap:wrap}
+  .badge{font-size:18px;width:34px;height:34px;display:grid;place-items:center;border-radius:10px;
+    background:var(--panel2);border:1px solid var(--border);position:relative;cursor:default}
+  .badge.locked{filter:grayscale(1);opacity:.32}
+  .badge .tip{position:absolute;bottom:42px;left:50%;transform:translateX(-50%);background:#000d;border:1px solid var(--border);
+    padding:6px 9px;border-radius:8px;font-size:11px;white-space:nowrap;display:none;z-index:5}
+  .badge:hover .tip{display:block}
+
+  main{max-width:1300px;margin:0 auto;padding:18px 28px 90px}
+
+  /* ---- tiers ---- */
+  .tier{margin:26px 0}
+  .tier-h{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+  .tier-h h2{font-size:18px;margin:0}
+  .tier-h .tag{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--chip);color:var(--muted);border:1px solid var(--border)}
+  .tier-h .tag.safe{color:#bdf5d6;border-color:#256047}
+  .tier-h .tag.edge{color:#cfe0ff;border-color:#33457a}
+  .tier-h .tag.var{color:#ffe2b8;border-color:#5a4423}
+  .tier-h .tag.trap{color:#ffc9c9;border-color:#5a2c2c}
+  .tier-desc{color:var(--muted);font-size:12.5px;margin:0 0 12px;max-width:900px;line-height:1.5}
+  .tier.locked{opacity:.5;pointer-events:none}
+  .lockmsg{font-size:12px;color:var(--warn);margin:2px 0 10px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .m{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;transition:.18s;overflow:hidden}
+  .m.done{border-color:#2e6b52;box-shadow:0 0 0 1px #2e6b5255,var(--shadow)}
+  .m.active{border-color:var(--accent);box-shadow:0 0 0 1px #5b8cff66,0 0 22px #3f6fe033,var(--shadow)}
+  .m.trap{border-color:#5a2c2c;background:linear-gradient(180deg,#1c1416,#141925)}
+  .m-head{padding:13px 15px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#1a2233,#141925)}
+  .m-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .m-name{font-size:16px;font-weight:700;display:flex;align-items:center;gap:7px}
+  .m-num{font-size:10px;color:var(--muted);background:var(--chip);padding:2px 7px;border-radius:20px}
+  .m-ev{font-size:18px;font-weight:800}
+  .m-sub{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.45}
+  .m-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+  .mc{font-size:10.5px;padding:2px 8px;border-radius:20px;background:var(--chip);color:var(--muted);border:1px solid var(--border)}
+  .mc.r1{color:#bdf5d6;border-color:#256047} .mc.r2{color:#ffe2b8;border-color:#5a4423} .mc.r3{color:#ffc9c9;border-color:#5a2c2c}
+  .m-body{padding:12px 15px;display:flex;flex-direction:column;gap:9px}
+  .m-prog{height:8px;background:var(--panel2);border-radius:20px;overflow:hidden;border:1px solid var(--border)}
+  .m-prog > i{display:block;height:100%;background:linear-gradient(90deg,#5b8cff,#36d399);width:0;transition:width .4s}
+  .m-foot{padding:0 15px 14px;display:flex;gap:8px}
+  .btn{background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:9px 14px;font-size:13px;cursor:pointer;transition:.15s;color:var(--text);font-family:inherit}
+  .btn:hover{border-color:var(--accent);background:#222c44}
+  .btn.primary{background:linear-gradient(180deg,#5b8cff,#3f6fe0);border-color:#3f6fe0;color:#fff}
+  .btn.good{background:linear-gradient(180deg,#36d399,#1f9e72);border-color:#1f9e72;color:#04140d;font-weight:700}
+  .btn.sm{padding:6px 10px;font-size:12px}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.full{width:100%;justify-content:center}
+
+  /* ---- step modal ---- */
+  .ovl{position:fixed;inset:0;background:#000a;backdrop-filter:blur(3px);display:none;z-index:60;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+  .ovl.on{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;max-width:620px;width:100%;box-shadow:var(--shadow)}
+  .modal-h{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;background:linear-gradient(180deg,#1a2233,#141925);border-radius:16px 16px 0 0}
+  .modal-h h3{margin:0;font-size:19px} .modal-h .x{cursor:pointer;font-size:22px;color:var(--muted);line-height:1}
+  .modal-b{padding:8px 20px 20px}
+  .why{background:#10233a;border:1px solid #244269;border-radius:10px;padding:10px 13px;font-size:12.5px;color:#cfe0ff;margin:12px 0;line-height:1.5}
+  .stoprule{background:#2a210f;border:1px solid #5a4423;border-radius:10px;padding:10px 13px;font-size:12.5px;color:#ffe2b8;margin:12px 0;line-height:1.5}
+  .stoprule b{color:var(--gold)}
+
+  .step{display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+  .step:last-child{border-bottom:0}
+  .step .box{flex-shrink:0;width:26px;height:26px;border-radius:8px;border:2px solid var(--border);display:grid;place-items:center;cursor:pointer;font-size:15px;transition:.15s;background:var(--panel2)}
+  .step.done .box{background:var(--good);border-color:var(--good);color:#04140d}
+  .step.locked{opacity:.45}
+  .step .body{flex:1}
+  .step .lab{font-size:13.5px;font-weight:600}
+  .step .det{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+  .step input.num{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);width:120px;margin-top:6px}
+  .miniprog{height:10px;background:var(--panel2);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-top:8px}
+  .miniprog > i{display:block;height:100%;background:linear-gradient(90deg,#5b8cff,#36d399);width:0;transition:width .35s}
+  .turn-row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+
+  .stopwin{background:linear-gradient(135deg,#1f9e72,#36d399);color:#04140d;border-radius:12px;padding:14px 16px;margin:10px 0;display:none}
+  .stopwin.on{display:block;animation:pulse 1.4s infinite}
+  .stopwin h4{margin:0 0 4px;font-size:16px} .stopwin p{margin:0;font-size:12.5px;font-weight:600}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 #36d39966}50%{box-shadow:0 0 0 8px #36d39900}}
+
+  .trap-math{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:#1c1416;border:1px solid #5a2c2c;border-radius:10px;padding:10px 13px;color:#ffc9c9;white-space:pre-wrap;line-height:1.55;margin:10px 0}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--panel);border:1px solid var(--accent);
+    border-radius:12px;padding:12px 20px;font-size:14px;box-shadow:var(--shadow);z-index:80;transition:.4s;font-weight:600}
+  .toast.on{transform:translateX(-50%) translateY(0)}
+  .toast.gold{border-color:var(--gold);color:var(--gold)}
+
+  .quiz{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+  .quiz .opt{padding:11px 13px;border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;background:var(--panel2);transition:.15s}
+  .quiz .opt:hover{border-color:var(--accent)}
+  .quiz .opt.right{border-color:var(--good);background:#10271c} .quiz .opt.wrong{border-color:var(--bad);background:#2a1414}
+  .footnote{color:var(--muted);font-size:11.5px;line-height:1.55;border-top:1px solid var(--border);margin-top:30px;padding-top:16px;max-width:980px}
+  .topbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+
+  /* view switch + payout log */
+  .seg{display:flex;background:var(--panel2);border:1px solid var(--border);border-radius:9px;overflow:hidden}
+  .seg button{background:transparent;border:0;padding:8px 14px;font-size:13px;color:var(--muted);cursor:pointer;font-family:inherit}
+  .seg button.active{background:var(--accent);color:#fff}
+  .field{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit}
+  .field:focus{border-color:var(--accent)}
+  .pl-wrap{display:flex;flex-direction:column;gap:16px}
+  .pl-stats{display:flex;flex-wrap:wrap;gap:12px}
+  .pl-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:11px 16px;min-width:120px;flex:1;box-shadow:var(--shadow)}
+  .pl-card .k{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .pl-card .v{font-size:20px;font-weight:800;margin-top:3px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px}
+  .panel h3{margin:0 0 12px;font-size:15px}
+  .legend{display:flex;gap:18px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+  .legend i{display:inline-block;width:15px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+  .pl-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:10px;align-items:end}
+  .pl-form label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
+  .pl-form .field{width:100%}
+  table.pl{width:100%;border-collapse:collapse;font-size:13px}
+  table.pl th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:8px 8px;border-bottom:1px solid var(--border)}
+  table.pl td{padding:9px 8px;border-bottom:1px solid var(--border)}
+  table.pl tr:hover{background:#161c2a}
+  .netpos{color:var(--good);font-weight:700} .netneg{color:var(--bad);font-weight:700}
+  .tag-st{font-size:10.5px;padding:2px 8px;border-radius:20px;background:var(--chip);border:1px solid var(--border);color:var(--muted)}
+  .iconbtn{background:none;border:0;cursor:pointer;color:var(--muted);font-size:14px;padding:3px 5px}
+  .iconbtn:hover{color:var(--accent)}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎯 Bonus Hunter <span style="font-size:13px;color:var(--muted);font-weight:500">New Player Campaign</span></h1>
+  <p class="sub">Turn a <b>$200</b> bankroll into the best realistic return by hunting <b>only +EV bonuses</b> in the right order.
+  Every mission enforces the stop-rules for you. The big flashy bonuses are <b>locked traps</b> — you'll learn why.
+  Progress auto-syncs to your <b>Bonus &amp; Registration Tracker</b>.</p>
+  <div class="topbtns">
+    <div class="seg" id="viewSeg">
+      <button data-view="campaign" class="active">🎯 Campaign</button>
+      <button data-view="paylog">📒 Payout Log</button>
+    </div>
+    <button class="btn sm" id="howBtn">❓ How EV works</button>
+    <button class="btn sm danger" id="resetBtn">↺ Reset campaign</button>
+    <span id="syncNote" style="font-size:11.5px;color:var(--muted);align-self:center"></span>
+  </div>
+</header>
+
+<div class="hud"><div class="hud-in">
+  <div class="hstat"><div class="k">Bankroll (actual)</div><div class="v" id="bankActual">$200</div></div>
+  <div class="hstat"><div class="k">Projected (EV)</div><div class="v gold" id="bankProj">$200</div></div>
+  <div class="hstat"><div class="k">EV captured</div><div class="v pos" id="evCap">+$0</div></div>
+  <div class="xpwrap">
+    <div class="lvl"><span id="lvlLabel">Level 1 · Rookie</span><span id="xpLabel">0 / 100 XP</span></div>
+    <div class="xpbar"><i class="xpfill" id="xpfill"></i></div>
+  </div>
+  <div class="badges" id="badgeRow"></div>
+</div></div>
+
+<main id="campaign"></main>
+<main id="paylog" style="display:none"></main>
+
+<div class="ovl" id="ovl"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   ASSUMPTIONS (mirror the EV engine): $1≈35 THB≈10 NOK,
+   slots RTP 96.5% (h=3.5%), deposit sized to max each bonus.
+   EV figures are EXPECTED values — real sessions vary.
+   ============================================================ */
+const H = 0.035, START = 200;
+
+/* ---- shared persistence with the existing tracker ---- */
+const BT_KEY="betTrackerV1";
+function btLoad(){try{return JSON.parse(localStorage.getItem(BT_KEY))||{}}catch(e){return{}}}
+function btSave(o){localStorage.setItem(BT_KEY,JSON.stringify(o))}
+function btRec(o,n){return o[n]||(o[n]={status:"none",deposit:"",bonus:"",wager:"",result:"",date:"",notes:"",kyc:false})}
+function syncTracker(n,patch){const o=btLoad();const r=btRec(o,n);Object.assign(r,patch);btSave(o);
+  document.getElementById('syncNote').textContent="✓ synced to betTrackerV1 ("+new Date().toLocaleTimeString()+")";}
+
+/* ---- quest state ---- */
+const Q_KEY="onboardingQuestV1";
+let Q = load();
+function load(){try{return JSON.parse(localStorage.getItem(Q_KEY))||fresh()}catch(e){return fresh()}}
+function fresh(){return{xp:0,badges:[],prog:{},done:[],seenTraps:[]}}
+function save(){localStorage.setItem(Q_KEY,JSON.stringify(Q));}
+function prog(id){return Q.prog[id]||(Q.prog[id]={steps:[],deposit:null,turnover:0,result:null})}
+
+/* ---- step factories ---- */
+const S = {
+  confirm:(d)=>({id:"confirm",type:"task",lab:"Confirm the terms on the official site",
+    det:"Check the live wagering requirement, the max bet while a bonus is active ("+(d.maxbet?("$"+d.maxbet):"~$5")+"), bonus-eligible game RTP, and any max-cashout cap. Terms change — never trust the headline."}),
+  register:(d)=>({id:"register",type:"task",sync:{status:"registered",date:"today"},
+    lab:"Register your account", det:"One account per brand, real details. Multi-accounting voids winnings."}),
+  kyc:(d)=>({id:"kyc",type:"task",sync:{kyc:true},lab:"Verify (KYC) if required",
+    det:"Do it BEFORE depositing where possible — unverified accounts are the #1 cause of blocked withdrawals. No-KYC crypto sites can skip this."}),
+  deposit:(d)=>({id:"deposit",type:"deposit",rec:d.deposit,
+    lab:"Deposit the recommended amount", det:"Recommended: <b>$"+d.deposit+"</b>. This sizes the bonus to its cap without over-committing your $200. Never deposit more to 'unlock' a bigger match."}),
+  claim:(d)=>({id:"claim",type:"task",sync:{bonus:d.bonusTxt||""},lab:"Opt in / claim the bonus",
+    det:"Enter any required code and confirm the bonus is credited. "+(d.bonusTxt?("This offer: "+d.bonusTxt):"")}),
+  wager:(d)=>({id:"wager",type:"wager",target:d.turnover,maxbet:d.maxbet||5,
+    lab:"Clear the wagering — turnover $"+d.turnover.toLocaleString(),
+    det:"Play a high-RTP, low-volatility slot at flat small stakes (≤$"+(d.maxbet||5)+"/bet, ~1–2% of balance). Low variance = best chance to finish the clear. Log your turnover as you go."}),
+  stopwin:(d)=>({id:"stopwin",type:"stopwin",lab:"STOP-WIN gate — withdraw the moment WR hits 100%",
+    det:"The +EV existed only DURING the clear. Every spin after is pure −EV. Withdraw now."}),
+  withdraw:(d)=>({id:"withdraw",type:"task",lab:"Withdraw to your wallet",det:"Cash out the full balance. Don't leave funds 'for next time'."}),
+  result:(d)=>({id:"result",type:"result",expect:d.ev,lab:"Log your result",
+    det:"Enter net profit/loss for this mission. Expected ≈ <b>+$"+d.ev+"</b> — but variance is real; a single run can differ a lot."}),
+  /* pure-value tier */
+  activate:(d)=>({id:"activate",type:"task",lab:"Activate cashback / rakeback",
+    det:"No wagering trap here — the rebate just shrinks the house edge. Opt into the loyalty/rakeback scheme."}),
+  playbudget:(d)=>({id:"playbudget",type:"task",lab:"Play only within your set budget",
+    det:"Set a session loss-limit first. Cashback softens losses; it is NOT a reason to deposit more."}),
+  collect:(d)=>({id:"collect",type:"result",expect:d.ev,lab:"Collect the rebate & log result",
+    det:"Claim the rakeback/cashback. Value is volume-based — expected ≈ <b>+$"+d.ev+"</b> over modest play."}),
+  /* non-sticky */
+  nsplay:(d)=>({id:"nsplay",type:"task",lab:"Cash → bet-to-double on BACCARAT, then clear on SLOTS",
+    det:"Non-sticky = your deposit is withdrawable; only the bonus is at risk. <b>Step 1 (cash):</b> if baccarat is allowed, bet your cash to ~double on banker — house edge ~1.06%, the cheapest variance you can buy (fewer, larger even-money bets = least edge paid). Hit your target → withdraw, bonus untouched. <b>Step 2 (bonus):</b> if the cash busts, the parachute deploys → switch to <b>slots</b> (100% wagering weight; baccarat barely counts) to clear the WR. ⚠ Check the max-bet-while-bonus rule — it can cap your baccarat stake even on your own cash."}),
+  nswithdraw:(d)=>({id:"nswithdraw",type:"task",lab:"Withdraw deposit anytime / cash out winnings",
+    det:"Because it's non-sticky you can pull your deposit whenever you stop. Worst case you lose only the planned bonus-phase stake — never your full $200."}),
+};
+
+/* ============================================================
+   CAMPAIGN DATA — built from the EV engine on your 85-site list
+   ============================================================ */
+const TIERS = [
+  {id:"academy",name:"🎓 The Academy",tag:"START HERE",tagcls:"",
+   desc:"One 60-second lesson + a quiz. This is the whole game in a nutshell — finish it to unlock the campaign.",
+   missions:[{
+     id:"academy",n:null,name:"The One Rule",ev:0,risk:"—",rcls:"r1",
+     chips:["Tutorial"], sub:"Why bonus size ≠ value.",
+     academy:true
+   }]},
+
+  {id:"t1",name:"Tier 1 — Pure Value",tag:"No wagering trap · safest",tagcls:"safe",
+   desc:"Cashback & rakeback offers. There is NO clearing requirement — the rebate directly reduces the house edge, so you can't be trapped. Always harvest these first; they protect the bankroll that funds everything else.",
+   missions:[
+     {id:"m77",n:77,name:"Thrill",ev:8,risk:"Very low",rcls:"r1",
+      bonusTxt:"Up to 70% Rakeback + 10% Cashback (no rollover)",deposit:50,turnover:0,maxbet:5,
+      chips:["No rollover","Rakeback","Cashback"],sub:"Rebate on losses, no wagering. Pure value.",
+      why:"No wagering requirement at all. A 10% cashback on net losses lowers your effective house edge directly — the rare offer that's +EV with zero clearing risk.",
+      stop:"Collect rakeback on schedule. <b>Never</b> deposit more just to 'earn more' rebate — the rebate is a fraction of losses, not free money.",
+      steps:["confirm","register","kyc","deposit","activate","playbudget","collect"]},
+     {id:"m79",n:79,name:"Cloudbet",ev:7,risk:"Very low",rcls:"r1",
+      bonusTxt:"100% up to 2,500 USDT released as 30% rakeback",deposit:50,turnover:0,maxbet:5,
+      chips:["Rakeback release","Crypto"],sub:"Bonus unlocks as cash rakeback as you play.",
+      why:"The match isn't sticky — it's released incrementally as rakeback while you play. No giant turnover wall; you keep what releases even if you stop.",
+      stop:"Stop whenever you like — released rakeback is already yours. Don't chase the full match by overplaying.",
+      steps:["confirm","register","kyc","deposit","activate","playbudget","collect"]},
+     {id:"m82",n:82,name:"Bitcasino.io",ev:6,risk:"Very low",rcls:"r1",
+      bonusTxt:"Up to 1,500 USDT — cashback / loyalty (no wagering)",deposit:50,turnover:0,maxbet:5,
+      chips:["No rollover","Loyalty"],sub:"Rewards via cashback & loyalty, not a match.",
+      why:"Value comes from a no-wager cashback/loyalty model rather than a trapped match bonus — so there's nothing to clear.",
+      stop:"Treat loyalty perks as a small rebate. Budget first; the perks don't change the games' edge much.",
+      steps:["confirm","register","kyc","deposit","activate","playbudget","collect"]},
+     {id:"m78",n:78,name:"Winz.io",ev:4,risk:"Very low",rcls:"r1",
+      bonusTxt:"Zero-wager free spins ('Wheel of Winz')",deposit:20,turnover:0,maxbet:5,
+      chips:["Zero wagering","Free spins"],sub:"Spin winnings are withdrawable instantly.",
+      why:"Free-spin winnings carry ZERO wagering — whatever you win is immediately cashable. Small but pure upside.",
+      stop:"Take the spins, withdraw any winnings, done. No deposit chasing.",
+      steps:["confirm","register","kyc","activate","collect"]},
+   ]},
+
+  {id:"t2",name:"Tier 2 — Low-WR Clears",tag:"The hard +EV · deposit at risk",tagcls:"edge",
+   desc:"100%-ish matches with LOW turnover (10–25×) — the only sticky bonuses whose math is positive on a 96.5% slot. Your deposit IS at risk to variance here, so do them only after Tier 1, one at a time, with strict stop-rules.",
+   missions:[
+     {id:"m51",n:51,name:"BK8",ev:32,risk:"Medium",rcls:"r2",verify:true,
+      bonusTxt:"100% Slots welcome · 12× turnover (Dep+Bonus)",deposit:200,turnover:4800,maxbet:5,
+      chips:["12× turnover","VERIFY cap"],sub:"Lowest WR in the list — confirm the casino cap.",
+      why:"12× turnover on Dep+Bonus at h=3.5% ⇒ expected cost ≈ $168 vs a $200 bonus ⇒ +$32. The single best clear-style EV here — IF the 100%/$200 cap is real. Confirm before depositing.",
+      stop:"<b>Stop-loss:</b> if the deposit busts before WR, walk — do not redeposit to chase. <b>Stop-win:</b> WR done → withdraw instantly.",
+      steps:["confirm","register","kyc","deposit","claim","wager","stopwin","withdraw","result"]},
+     {id:"m52",n:52,name:"We88",ev:23,risk:"Medium",rcls:"r2",
+      bonusTxt:"100% up to 5,000 THB (~$143) · 12× turnover (Dep+Bonus)",deposit:143,turnover:3429,maxbet:5,
+      chips:["12× turnover"],sub:"Deposit $143 → $143 bonus, clear $3,429.",
+      why:"12× turnover on Dep+Bonus ($286 base) ⇒ ~$120 expected cost vs $143 bonus ⇒ +$23. Solid, well-defined +EV.",
+      stop:"<b>Stop-loss:</b> deposit gone before WR = move on. <b>Stop-win:</b> hit 100% → withdraw, don't keep spinning.",
+      steps:["confirm","register","kyc","deposit","claim","wager","stopwin","withdraw","result"]},
+     {id:"m75",n:75,name:"MS.Slot",ev:18,risk:"Medium",rcls:"r2",
+      bonusTxt:"150% Slots up to 5,000 THB (~$143) · 25× bonus",deposit:95,turnover:3571,maxbet:5,
+      chips:["25× bonus"],sub:"Deposit $95 → max the $143 bonus.",
+      why:"25× on bonus only ($143) ⇒ ~$125 cost vs $143 bonus ⇒ +$18. Just inside the +EV line — slot RTP matters; verify it's ~96.5%.",
+      stop:"<b>Stop-win</b> at 100% WR. Because margin is thin, a low-RTP slot can flip this negative — stick to the highest-RTP eligible title.",
+      steps:["confirm","register","kyc","deposit","claim","wager","stopwin","withdraw","result"]},
+     {id:"m76",n:76,name:"I828",ev:11,risk:"Medium",rcls:"r2",
+      bonusTxt:"100% up to 3,000 THB (~$86) · 25× bonus",deposit:86,turnover:2143,maxbet:5,
+      chips:["25× bonus"],sub:"Smaller, but cleanly positive.",
+      why:"25× on $86 bonus ⇒ ~$75 cost vs $86 ⇒ +$11. Lower stake, lower variance — a good confidence-builder clear.",
+      stop:"<b>Stop-win</b> at 100%. <b>Stop-loss</b> = the $86 deposit, no chasing.",
+      steps:["confirm","register","kyc","deposit","claim","wager","stopwin","withdraw","result"]},
+     {id:"m74",n:74,name:"Huc99",ev:0,risk:"Verify",rcls:"r2",verify:true,
+      bonusTxt:"100% register / free-trial bonus · 10× wagering",deposit:0,turnover:0,maxbet:5,
+      chips:["10× wagering","VERIFY"],sub:"Lowest WR of all — if it's a no-deposit trial, it's pure +EV.",
+      why:"10× wagering is the lowest in your whole list. If this is a genuine no-deposit / free-trial bonus, the EV is strongly positive with zero deposit risk. Confirm the exact terms & amount first.",
+      stop:"If no-deposit: <b>nothing to lose</b> — clear the 10× and withdraw. If it requires a deposit, treat like a Tier-2 clear with stop-loss.",
+      steps:["confirm","register","kyc","claim","wager","stopwin","withdraw","result"]},
+   ]},
+
+  {id:"t3",name:"Tier 3 — Parachute (Non-Sticky)",tag:"Deposit-safe · high variance",tagcls:"var",
+   desc:"Non-sticky 'parachute' bonuses. The WR is too high to clear flat, BUT your deposit is recoverable — you only ever risk the bonus phase. <b>Our play: bet the cash to double on baccarat (lowest edge ~1.06%), then clear any bonus phase on slots (100% weight).</b> Optional, high-variance upside.",
+   missions:[
+     {id:"m13",n:13,name:"Lilibet",ev:18,risk:"High variance",rcls:"r3",
+      bonusTxt:"100% up to 15,000 THB + 500 FS · 30× (D+B), non-sticky",deposit:100,turnover:0,maxbet:5,
+      chips:["Non-sticky","Parachute"],sub:"Lowest-WR non-sticky — best parachute play.",
+      why:"Non-sticky + 30× is the friendliest parachute here. Deposit recoverable; bold-play your cash to a target. Expected upside positive, but swingy.",
+      stop:"<b>Set a target & a walk-away</b> before you start. Hit target → withdraw. Bust cash → grind the bonus or quit. Never top up.",
+      steps:["confirm","register","kyc","deposit","claim","nsplay","nswithdraw","result"]},
+     {id:"m7",n:7,name:"Lucky Spins",ev:12,risk:"High variance",rcls:"r3",
+      bonusTxt:"100% up to 10,000 THB + 100 FS · 35× non-sticky (cash-reload)",deposit:100,turnover:0,maxbet:5,
+      chips:["Non-sticky"],sub:"Wager your own cash first; bonus as backup.",
+      why:"Cash-reload / non-sticky: your money plays first and is withdrawable. Positive only with disciplined bold-play; otherwise just take your deposit back.",
+      stop:"Same parachute rules: pre-set target, no chasing, deposit comes back if you quit early.",
+      steps:["confirm","register","kyc","deposit","claim","nsplay","nswithdraw","result"]},
+     {id:"m22",n:22,name:"Bitstarz",ev:10,risk:"High variance",rcls:"r3",
+      bonusTxt:"100% up to 1 BTC + 180 FS · 40× non-sticky",deposit:100,turnover:0,maxbet:5,
+      chips:["Non-sticky","Parachute"],sub:"Reputable crypto casino, deposit-safe bonus.",
+      why:"40× is high, so flat-clearing is −EV — but non-sticky means you risk only the bonus. Treat as a free shot on top of a recoverable deposit.",
+      stop:"Pre-set target. If you don't fancy the bold-play, just withdraw the deposit — you lose nothing.",
+      steps:["confirm","register","kyc","deposit","claim","nsplay","nswithdraw","result"]},
+     {id:"m86",n:86,name:"Coins.game",ev:18,risk:"High variance",rcls:"r3",
+      bonusTxt:"100% up to $1,000, NON-STICKY · 30× bonus (deposit recoverable)",deposit:100,turnover:0,maxbet:5,
+      chips:["Non-sticky","Parachute","30×"],sub:"Confirmed non-sticky — deposit-safe, lowest-WR parachute here.",
+      why:"Confirmed NON-STICKY: your deposit stays withdrawable and only the bonus is at risk. 30× is the friendliest parachute WR in the campaign (ties Lilibet). Bet your cash to double on baccarat (~1.06% edge); hit target → withdraw. Bust the cash → the bonus deploys, clear it on slots.",
+      stop:"Pre-set a target and a walk-away first. Hit target → withdraw. Don't fancy the bold-play? Just pull your deposit — you lose nothing. Never top up to chase.",
+      steps:["confirm","register","kyc","deposit","claim","nsplay","nswithdraw","result"]},
+   ]},
+
+  {id:"traps",name:"⛔ The Trap Zone",tag:"LOCKED · −EV",tagcls:"trap",
+   desc:"The biggest, flashiest bonuses in your list. They are permanently locked because the math is brutal — the headline % is bait. Click any to see exactly how much it's projected to LOSE. Resisting them is itself an achievement.",
+   trap:true,
+   missions:[
+     {id:"x2", n:2, name:"BC.Game",ev:-541,bonusTxt:"Up to 470% / $1,600 + 400 FS",wr:"45× bonus",turnover:42300,risk:"Trap",rcls:"r3",chips:["470% bait","45×"],sub:"Biggest headline = worst EV."},
+     {id:"x59",n:59,name:"BetGoat",ev:-416,bonusTxt:"380% up to $4,500",wr:"35× (D+B)",turnover:33600,risk:"Trap",rcls:"r3",chips:["380% bait","35× D+B"],sub:""},
+     {id:"x37",n:37,name:"Westace",ev:-403,bonusTxt:"350% up to 550,000 THB",wr:"35× (D+B)",turnover:31500,risk:"Trap",rcls:"r3",chips:["350% bait","35× D+B"],sub:""},
+     {id:"x1", n:1, name:"Stake",ev:-160,bonusTxt:"200% up to $2,000",wr:"40× bonus",turnover:16000,risk:"Trap",rcls:"r3",chips:["200% bait","40×"],sub:"Great brand, terrible welcome WR."},
+     {id:"x5", n:5, name:"Rabona",ev:-290,bonusTxt:"100% up to 5,000 NOK + 200 FS",wr:"35× (D+B)",turnover:14000,risk:"Trap",rcls:"r3",chips:["35× D+B"],sub:"The default 35×(D+B) trap — 30+ sites share it."},
+   ]},
+];
+
+/* ---- academy quiz ---- */
+const QUIZ = {
+  q:"A casino offers <b>300% up to $3,000</b> with <b>40× wagering on the bonus</b>, cleared on a 96.5% slot (house edge 3.5%). Is it +EV?",
+  opts:[
+    {t:"Yes — 300% is a huge free bonus!",ok:false},
+    {t:"No — 40 × 3.5% = 1.4 > 1, so you lose ~40% of the bonus clearing it",ok:true},
+    {t:"Can't tell without knowing the deposit size",ok:false},
+  ],
+  ex:"The rule: a match bonus is +EV only if <b>wagerX × house-edge &lt; 1</b>. Here 40 × 0.035 = 1.40, so expected clearing cost is 140% of the bonus — a guaranteed long-run loss. The headline 300% is irrelevant. THIS is why the campaign skips them."
+};
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const BADGE_DEFS=[
+  {id:"grad",emo:"🎓",name:"Graduate — finished the Academy"},
+  {id:"safety",emo:"🛡️",name:"Safety First — cleared a Pure-Value mission"},
+  {id:"clear",emo:"💎",name:"First Clear — completed a low-WR clear"},
+  {id:"cashrun",emo:"🚪",name:"Cash & Run — withdrew the instant WR hit 100%"},
+  {id:"ice",emo:"🧊",name:"Ice Veins — logged a loss without chasing"},
+  {id:"chute",emo:"🪂",name:"Parachutist — completed a non-sticky mission"},
+  {id:"dodger",emo:"🚫",name:"Trap Dodger — inspected a trap and walked away"},
+  {id:"crown",emo:"👑",name:"Campaign Complete — finished every recommended mission"},
+];
+function award(id){if(!Q.badges.includes(id)){Q.badges.push(id);addXP(25);toast("🏅 Badge unlocked: "+BADGE_DEFS.find(b=>b.id===id).name,true);}}
+function addXP(n){Q.xp+=n;save();renderHUD();}
+function level(){return Math.floor(Q.xp/100)+1;}
+const RANKS=["Rookie","Scout","Hunter","Sharp","Strategist","Bonus Master"];
+
+function renderHUD(){
+  const lv=level(),inLv=Q.xp%100;
+  document.getElementById('xpfill').style.width=inLv+"%";
+  document.getElementById('xpLabel').textContent=Q.xp+" / "+(lv*100)+" XP";
+  document.getElementById('lvlLabel').textContent="Level "+lv+" · "+(RANKS[Math.min(lv-1,RANKS.length-1)]);
+  // bankroll: actual = START + sum logged results; projected = START + sum EV of completed +EV missions
+  let actual=START, ev=0;
+  TIERS.forEach(t=>t.missions.forEach(m=>{
+    const p=Q.prog[m.id];
+    if(Q.done.includes(m.id)){ if(m.ev>0) ev+=m.ev;
+      if(p&&p.result!=null) actual+=Number(p.result); else if(m.ev>0) actual+=m.ev; }
+  }));
+  if(typeof PL!=='undefined' && PL.entries && PL.entries.length){
+    actual = START + PL.entries.reduce((s,e)=>s+((+e.withdrawn||0)-(+e.deposit||0)),0); }
+  const aEl=document.getElementById('bankActual');aEl.textContent="$"+Math.round(actual);
+  aEl.className="v "+(actual>=START?"pos":"neg");
+  document.getElementById('bankProj').textContent="$"+Math.round(START+ev);
+  document.getElementById('evCap').textContent=(ev>=0?"+$":"-$")+Math.abs(Math.round(ev));
+  const br=document.getElementById('badgeRow');
+  br.innerHTML=BADGE_DEFS.map(b=>`<div class="badge ${Q.badges.includes(b.id)?'':'locked'}">${b.emo}<span class="tip">${b.name}</span></div>`).join("");
+}
+
+function tierUnlocked(t){
+  if(t.id==="academy") return true;
+  if(t.id==="traps") return false; // never "unlocked" (educational only)
+  if(!Q.done.includes("academy")) return false;
+  if(t.id==="t1") return true;
+  if(t.id==="t2") return TIERS.find(x=>x.id==="t1").missions.some(m=>Q.done.includes(m.id));
+  if(t.id==="t3") return TIERS.find(x=>x.id==="t2").missions.some(m=>Q.done.includes(m.id));
+  return true;
+}
+function missionDone(m){ if(m.academy) return Q.done.includes(m.id);
+  const p=prog(m.id); return m.steps && m.steps.every(s=>p.steps.includes(s)); }
+
+function render(){
+  const root=document.getElementById('campaign');
+  root.innerHTML=TIERS.map(t=>{
+    const unlocked=tierUnlocked(t);
+    const cards=t.missions.map(m=>missionCard(m,t,unlocked)).join("");
+    return `<section class="tier ${(!unlocked&&!t.trap)?'locked':''}">
+      <div class="tier-h"><h2>${t.name}</h2><span class="tag ${t.tagcls}">${t.tag}</span></div>
+      <p class="tier-desc">${t.desc}</p>
+      ${(!unlocked&&!t.trap)?`<div class="lockmsg">🔒 Complete the previous tier to unlock.</div>`:""}
+      <div class="grid">${cards}</div>
+    </section>`;
+  }).join("");
+  renderHUD();
+}
+
+function missionCard(m,t,unlocked){
+  const done=Q.done.includes(m.id);
+  const p=Q.prog[m.id];
+  const total=m.steps?m.steps.length:1;
+  const filled=p?p.steps.length:0;
+  const pct=m.academy?(done?100:0):Math.round(filled/total*100);
+  const evTxt = m.academy?"":(m.ev>0?`<span style="color:var(--good)">+$${m.ev}</span>`:(m.ev<0?`<span style="color:var(--bad)">−$${Math.abs(m.ev)}</span>`:`<span style="color:var(--muted)">+EV*</span>`));
+  let foot;
+  if(t.trap) foot=`<button class="btn full" data-trap="${m.id}">🔍 Why it's a trap</button>`;
+  else if(m.academy) foot=`<button class="btn primary full" data-open="${m.id}">${done?'↻ Review lesson':'▶ Start lesson'}</button>`;
+  else if(!unlocked) foot=`<button class="btn full" disabled>🔒 Locked</button>`;
+  else foot=`<button class="btn ${done?'good':'primary'} full" data-open="${m.id}">${done?'✓ Completed — review':'▶ Open mission'}</button>`;
+  return `<div class="m ${done?'done':''} ${t.trap?'trap':''}">
+    <div class="m-head"><div class="m-top">
+      <div><div class="m-name">${m.name} ${done?'<span style="color:var(--good)">✓</span>':''}</div>
+      ${m.n?`<span class="m-num">#${m.n} in tracker</span>`:''}</div>
+      <div class="m-ev">${evTxt}</div></div>
+      <div class="m-sub">${m.sub||''}</div>
+      <div class="m-chips">${(m.chips||[]).map(c=>`<span class="mc ${m.rcls||''}">${c}</span>`).join("")}
+        ${m.risk&&!t.trap&&!m.academy?`<span class="mc">⚠ ${m.risk}</span>`:''}</div>
+    </div>
+    <div class="m-body"><div class="m-prog"><i style="width:${pct}%"></i></div>
+      <div style="font-size:11px;color:var(--muted)">${m.academy?(done?'Lesson complete':'Lesson'):filled+' / '+total+' steps'}</div>
+    </div>
+    <div class="m-foot">${foot}</div></div>`;
+}
+
+/* ============================================================
+   MISSION MODAL
+   ============================================================ */
+let CUR=null;
+function findMission(id){for(const t of TIERS){const m=t.missions.find(x=>x.id===id);if(m)return{m,t};}return null;}
+
+function openMission(id){
+  const {m,t}=findMission(id); CUR={m,t};
+  const modal=document.getElementById('modal');
+  if(m.academy){ modal.innerHTML=academyHTML(); document.getElementById('ovl').classList.add('on'); bindAcademy(); return; }
+  const p=prog(m.id);
+  const steps=m.steps.map((sid,i)=>{
+    const def=S[sid](m);
+    const sdone=p.steps.includes(sid);
+    const prevDone=i===0||p.steps.includes(m.steps[i-1]);
+    return stepHTML(def,sdone,prevDone,m,p);
+  }).join("");
+  modal.innerHTML=`<div class="modal-h"><div><h3>${m.name} ${m.n?`<span style="font-size:12px;color:var(--muted)">#${m.n}</span>`:''}</h3>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">${m.bonusTxt||''}</div></div>
+      <span class="x" data-close>×</span></div>
+    <div class="modal-b">
+      <div class="why">💡 <b>Why this mission:</b> ${m.why||''}</div>
+      <div class="stoprule">🛑 <b>Stop-rules:</b> ${m.stop||''}</div>
+      <div class="stopwin" id="stopwinBanner"><h4>🎉 Wagering complete — WITHDRAW NOW</h4>
+        <p>The edge is spent. Click the withdraw step. Do NOT keep playing.</p></div>
+      ${steps}
+    </div>`;
+  document.getElementById('ovl').classList.add('on');
+  refreshStopwin();
+}
+
+function stepHTML(def,done,prevDone,m,p){
+  const locked=!done&&!prevDone;
+  let extra="";
+  if(def.type==="deposit"){
+    extra=`<div class="turn-row"><input class="num" type="number" id="depInput" placeholder="$ ${def.rec}" value="${p.deposit??''}">
+      <button class="btn sm" id="depSet">Set deposit</button>
+      <span style="font-size:11px;color:var(--muted)">recommended $${def.rec}</span></div>`;
+  }
+  if(def.type==="wager"){
+    const cur=p.turnover||0, pc=def.target>0?Math.min(100,Math.round(cur/def.target*100)):0;
+    const spins=def.target>0?Math.ceil(def.target/def.maxbet):0;
+    extra=`<div class="miniprog"><i style="width:${pc}%"></i></div>
+      <div class="turn-row"><input class="num" type="number" id="turnInput" placeholder="$ so far" value="${cur||''}">
+        <button class="btn sm" id="turnSet">Update</button>
+        <button class="btn sm" id="turnMax">+ $${def.maxbet}</button>
+        <span style="font-size:11px;color:var(--muted)">${cur.toLocaleString()} / ${def.target.toLocaleString()} · ≈${spins} spins @ $${def.maxbet}</span></div>`;
+  }
+  if(def.type==="result"){
+    extra=`<div class="turn-row"><input class="num" type="number" id="resInput" placeholder="net $ (e.g. ${def.expect})" value="${p.result??''}">
+      <button class="btn sm good" id="resSet">Log & finish</button></div>`;
+  }
+  if(def.type==="stopwin"){
+    extra=`<div style="font-size:11.5px;color:var(--gold);margin-top:6px">Unlocks when wagering hits 100%. Tempted to keep going? <a href="#" id="keepPlaying">…keep playing?</a></div>`;
+  }
+  return `<div class="step ${done?'done':''} ${locked?'locked':''}" data-step="${def.id}">
+    <div class="box" ${locked?'':`data-toggle="${def.id}"`}>${done?'✓':''}</div>
+    <div class="body"><div class="lab">${def.lab}</div><div class="det">${def.det}</div>${extra}</div></div>`;
+}
+
+function refreshStopwin(){
+  if(!CUR||!CUR.m.steps) return;
+  const p=prog(CUR.m.id);
+  const hasWager=CUR.m.steps.includes("wager");
+  const wagerDone=p.steps.includes("wager");
+  const b=document.getElementById('stopwinBanner');
+  if(b) b.classList.toggle('on', hasWager && wagerDone && !p.steps.includes("withdraw"));
+}
+
+/* step interactions (event delegation on modal) */
+document.getElementById('modal').addEventListener('click',e=>{
+  if(e.target.matches('[data-close]')){closeModal();return;}
+  const tog=e.target.closest('[data-toggle]');
+  if(tog){toggleStep(tog.getAttribute('data-toggle'));return;}
+  if(e.target.id==='depSet'){const v=document.getElementById('depInput').value;prog(CUR.m.id).deposit=v;save();
+      syncTracker(CUR.m.n,{status:"deposited",deposit:v});completeStep("deposit");return;}
+  if(e.target.id==='turnSet'||e.target.id==='turnMax'){
+      const def=S.wager(CUR.m);const p=prog(CUR.m.id);
+      if(e.target.id==='turnMax') p.turnover=(p.turnover||0)+def.maxbet;
+      else p.turnover=Number(document.getElementById('turnInput').value||0);
+      if(p.turnover>=def.target){p.turnover=def.target;} save();
+      syncTracker(CUR.m.n,{wager:String(p.turnover)});
+      if(p.turnover>=def.target) completeStep("wager"); else reopen();
+      return;}
+  if(e.target.id==='resSet'){const v=Number(document.getElementById('resInput').value||0);
+      const p=prog(CUR.m.id);p.result=v;save();syncTracker(CUR.m.n,{result:String(v)});
+      if(v<0) award("ice");
+      completeStep(CUR.m.steps.includes("result")?"result":"collect");return;}
+  if(e.target.id==='keepPlaying'){e.preventDefault();keepPlayingWarn();return;}
+});
+
+function toggleStep(sid){
+  const p=prog(CUR.m.id);
+  if(p.steps.includes(sid)) return; // forward-only for simplicity
+  // steps needing input shouldn't toggle by checkbox
+  if(["deposit","wager","result","collect"].includes(sid)){toast("Use the input/button for this step.");return;}
+  completeStep(sid);
+}
+function completeStep(sid){
+  const m=CUR.m,p=prog(m.id);
+  if(!p.steps.includes(sid)){p.steps.push(sid);addXP(10);
+    const def=S[sid]?S[sid](m):null;
+    if(def&&def.sync){const patch={...def.sync};if(patch.date==="today")patch.date=new Date().toISOString().slice(0,10);syncTracker(m.n,patch);}
+    if(sid==="withdraw"&&m.steps.includes("stopwin")) award("cashrun");
+  }
+  save();
+  // mission completion
+  if(missionDone(m)&&!Q.done.includes(m.id)){
+    Q.done.push(m.id);addXP(50);
+    if(CUR.t.id==="t1") award("safety");
+    if(CUR.t.id==="t2") award("clear");
+    if(CUR.t.id==="t3") award("chute");
+    toast("✅ Mission complete: "+m.name+"  (+50 XP)",true);
+    checkCrown();
+  }
+  reopen();
+}
+function reopen(){const id=CUR.m.id;openMission(id);render();}
+function closeModal(){document.getElementById('ovl').classList.remove('on');CUR=null;render();}
+
+function keepPlayingWarn(){
+  const modal=document.getElementById('modal');
+  const o=modal.innerHTML;
+  modal.insertAdjacentHTML('afterbegin',`<div id="warnFloat" style="position:sticky;top:0;z-index:5"></div>`);
+  toast("⚠ Every spin past 100% WR is pure −EV — the edge is gone.",true);
+}
+
+function checkCrown(){
+  const need=[]; TIERS.forEach(t=>{if(["t1","t2","t3"].includes(t.id))t.missions.forEach(m=>{if(!m.verify||m.id!=="m74")need.push(m.id);});});
+  // crown when academy + at least the core +EV missions done (We88, MS.Slot, I828 + one tier1 + one tier3)
+  const core=["academy","m52","m75","m76","m77","m13"];
+  if(core.every(id=>Q.done.includes(id))) award("crown");
+}
+
+/* ---- trap inspector ---- */
+function openTrap(id){
+  const {m}=findMission(id);
+  if(!Q.seenTraps.includes(id)){Q.seenTraps.push(id);save();}
+  award("dodger");
+  const D=Math.round(m.turnover*0.035);
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<div class="modal-h"><div><h3>⛔ ${m.name} <span style="font-size:12px;color:var(--muted)">#${m.n}</span></h3>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">${m.bonusTxt}</div></div><span class="x" data-close>×</span></div>
+    <div class="modal-b">
+      <div class="stoprule">🎣 This is the bait. Big % + big wagering = big loss. Here's the math on a $200 deposit:</div>
+      <div class="trap-math">offer        : ${m.bonusTxt}
+wagering     : ${m.wr}
+turnover req : $${m.turnover.toLocaleString()}
+house edge   : 3.5%  (96.5% slot)
+expected cost: $${m.turnover.toLocaleString()} × 0.035 = $${D.toLocaleString()}
+bonus value  : far less than the cost
+─────────────────────────────────────
+PROJECTED RESULT: −$${Math.abs(m.ev)}  (you lose your bankroll)</div>
+      <div class="why">✅ <b>The campaign skips this on purpose.</b> You just earned the 🚫 <b>Trap Dodger</b> badge for looking before leaping. Walk away and stick to Tiers 1–2.</div>
+      <button class="btn primary full" data-close>Got it — I'll skip it</button>
+    </div>`;
+  document.getElementById('ovl').classList.add('on');
+  render();
+}
+
+/* ---- academy ---- */
+function academyHTML(){
+  const done=Q.done.includes("academy");
+  return `<div class="modal-h"><div><h3>🎓 The One Rule</h3>
+    <div style="font-size:12px;color:var(--muted);margin-top:3px">The whole game in 60 seconds</div></div><span class="x" data-close>×</span></div>
+    <div class="modal-b">
+      <div class="why">Every casino game loses money long-term (the <b>house edge</b>). For a new player the only real edge is the <b>welcome bonus</b> — but it's locked behind <b>wagering (WR)</b>. The bonus is worth taking only if:
+        <div class="trap-math" style="color:#bdf5d6;border-color:#256047;background:#10271c">WR × house-edge  &lt;  1
+
+slot edge ≈ 3.5%  →  take it only if WR ≲ 28× (bonus)  or ≲ 14× (Dep+Bonus)</div>
+        That's it. Big headline %? Irrelevant. A 470% bonus at 45× WR loses money; a boring 100% at 12× makes money.</div>
+      <div class="stoprule">🛑 The 3 stop-rules this game enforces for you:
+        <br>1. <b>Stop-loss</b> — deposit busts before WR? Walk. Never redeposit to chase.
+        <br>2. <b>Stop-win</b> — WR hits 100%? Withdraw instantly. Every spin after is −EV.
+        <br>3. <b>Budget</b> — only ever stake your planned amount; bonuses are not a reason to deposit more.</div>
+      <h4 style="margin:16px 0 4px">Quick check ${done?'<span style="color:var(--good)">✓ passed</span>':''}</h4>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 4px">${QUIZ.q}</p>
+      <div class="quiz" id="quiz">${QUIZ.opts.map((o,i)=>`<div class="opt" data-opt="${i}">${o.t}</div>`).join("")}</div>
+      <div id="quizEx"></div>
+    </div>`;
+}
+function bindAcademy(){
+  const quiz=document.getElementById('quiz');
+  if(Q.done.includes("academy")){document.getElementById('quizEx').innerHTML=`<div class="why">${QUIZ.ex}</div>`;}
+  quiz&&quiz.addEventListener('click',e=>{
+    const o=e.target.closest('[data-opt]');if(!o)return;
+    const i=+o.getAttribute('data-opt');const correct=QUIZ.opts[i].ok;
+    [...quiz.children].forEach(c=>c.classList.remove('right','wrong'));
+    o.classList.add(correct?'right':'wrong');
+    document.getElementById('quizEx').innerHTML=`<div class="why">${QUIZ.ex}</div>`;
+    if(correct&&!Q.done.includes("academy")){Q.done.push("academy");addXP(50);award("grad");toast("🎓 Academy passed — campaign unlocked! (+50 XP)",true);setTimeout(()=>{closeModal();},900);}
+  });
+}
+
+/* ---- global clicks ---- */
+document.getElementById('campaign').addEventListener('click',e=>{
+  const op=e.target.closest('[data-open]'); if(op){openMission(op.getAttribute('data-open'));return;}
+  const tr=e.target.closest('[data-trap]'); if(tr){openTrap(tr.getAttribute('data-trap'));return;}
+});
+document.getElementById('ovl').addEventListener('click',e=>{if(e.target.id==='ovl')closeModal();});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  if(confirm("Reset campaign progress? (Your betTrackerV1 data is NOT touched.)")){Q=fresh();save();render();toast("Campaign reset.");}
+});
+document.getElementById('howBtn').addEventListener('click',()=>openMission("academy"));
+
+/* ---- toast ---- */
+let tT;
+function toast(msg,gold){const el=document.getElementById('toast');el.textContent=msg;el.className="toast on"+(gold?" gold":"");clearTimeout(tT);tT=setTimeout(()=>el.className="toast"+(gold?" gold":""),2600);}
+
+/* ============================================================
+   PAYOUT LOG — track real results over time (projected vs realized)
+   Persists to its own key; never overwrites quest/tracker data.
+   ============================================================ */
+const PL_KEY="payoutLogV1";
+let PL = plLoad();
+let editId=null;
+const ST=['in-progress','cleared','busted','withdrawn'];
+function plLoad(){try{return JSON.parse(localStorage.getItem(PL_KEY))||{entries:[]}}catch(e){return{entries:[]}}}
+function plSave(){localStorage.setItem(PL_KEY,JSON.stringify(PL));}
+function num(v){return parseFloat(v)||0;}
+function today(){return new Date().toISOString().slice(0,10);}
+function campaignCasinos(){const l=[];TIERS.forEach(t=>{if(t.trap||t.id==='academy')return;t.missions.forEach(m=>l.push({name:m.name,n:m.n,ev:m.ev}));});return l;}
+function evForName(name){const c=campaignCasinos().find(x=>x.name.toLowerCase()===(name||'').toLowerCase());return c?c.ev:0;}
+function nForName(name){const c=campaignCasinos().find(x=>x.name.toLowerCase()===(name||'').toLowerCase());return c?c.n:null;}
+function projOf(e){return (e.projEV!=null&&e.projEV!=='')?+e.projEV:evForName(e.name);}
+function netOf(e){return (+e.withdrawn||0)-(+e.deposit||0);}
+
+function setView(v){
+  document.getElementById('campaign').style.display=v==='campaign'?'':'none';
+  document.getElementById('paylog').style.display=v==='paylog'?'':'none';
+  document.querySelectorAll('#viewSeg button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  if(v==='paylog') renderPaylog(); else render();
+}
+document.getElementById('viewSeg').addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(b)setView(b.dataset.view);});
+
+function plCard(k,v,cls){return `<div class="pl-card"><div class="k">${k}</div><div class="v ${cls||''}">${v}</div></div>`;}
+
+function chartSVG(){
+  const W=760,Hh=190,padL=46,padR=14,padT=14,padB=10;
+  const ent=[...PL.entries].sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.id>b.id?1:-1));
+  let ca=START,cp=START; const pts=[{a:START,p:START}];
+  ent.forEach(e=>{ca+=netOf(e);cp+=projOf(e);pts.push({a:ca,p:cp});});
+  const n=pts.length, vals=pts.flatMap(p=>[p.a,p.p]);
+  let mn=Math.min(...vals),mx=Math.max(...vals); if(mn===mx){mn-=10;mx+=10;}
+  const pd=(mx-mn)*0.12||10; mn-=pd; mx+=pd;
+  const xw=W-padL-padR, yh=Hh-padT-padB;
+  const X=i=> padL+(n<=1?xw/2:(i/(n-1))*xw);
+  const Y=v=> padT+(1-(v-mn)/(mx-mn))*yh;
+  const line=k=>pts.map((p,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(p[k]).toFixed(1)}`).join(' ');
+  const ticks=[mn,(mn+mx)/2,mx].map(v=>`<line x1="${padL}" y1="${Y(v).toFixed(1)}" x2="${W-padR}" y2="${Y(v).toFixed(1)}" stroke="#28314a" stroke-width="0.5"/><text x="6" y="${(Y(v)+4).toFixed(1)}" fill="#8794ad" font-size="10">$${Math.round(v)}</text>`).join('');
+  const dot=(k,col)=>`<circle cx="${X(n-1).toFixed(1)}" cy="${Y(pts[n-1][k]).toFixed(1)}" r="3.5" fill="${col}"/>`;
+  return `<svg viewBox="0 0 ${W} ${Hh}" width="100%" height="${Hh}" preserveAspectRatio="none" style="max-width:100%">
+    ${ticks}
+    <line x1="${padL}" y1="${Y(START).toFixed(1)}" x2="${W-padR}" y2="${Y(START).toFixed(1)}" stroke="#5b8cff" stroke-width="1" stroke-dasharray="4 4" opacity="0.55"/>
+    <path d="${line('p')}" fill="none" stroke="#ffd166" stroke-width="2"/>
+    <path d="${line('a')}" fill="none" stroke="#36d399" stroke-width="2.5"/>
+    ${dot('p','#ffd166')}${dot('a','#36d399')}
+  </svg>`;
+}
+
+function plTable(){
+  const rows=[...PL.entries].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.id>a.id?1:-1));
+  return `<table class="pl"><thead><tr><th>Date</th><th>Casino</th><th>Dep</th><th>Bonus</th><th>Turnover</th><th>Withdrawn</th><th>Net</th><th>Proj</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>
+  ${rows.map(e=>{const net=netOf(e),pj=projOf(e);
+    return `<tr><td>${e.date||''}</td><td>${e.name||''}${e.n?` <span style="color:var(--muted);font-size:10px">#${e.n}</span>`:''}</td>
+      <td>$${+e.deposit||0}</td><td>$${+e.bonus||0}</td><td>$${(+e.turnover||0).toLocaleString()}</td><td>$${+e.withdrawn||0}</td>
+      <td class="${net>=0?'netpos':'netneg'}">${net>=0?'+':'−'}$${Math.abs(net)}</td>
+      <td style="color:var(--gold)">${pj>=0?'+':'−'}$${Math.abs(Math.round(pj))}</td>
+      <td><span class="tag-st">${e.status||'—'}</span></td>
+      <td style="color:var(--muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(e.notes||'').replace(/"/g,'&quot;')}">${e.notes||''}</td>
+      <td style="white-space:nowrap"><button class="iconbtn" data-edit="${e.id}" title="Edit">✎</button><button class="iconbtn" data-del="${e.id}" title="Delete">🗑</button></td></tr>`;}).join('')}
+  </tbody></table>`;
+}
+
+function fillForm(e){const g=id=>document.getElementById(id);
+  g('plDate').value=e.date||today();g('plName').value=e.name||'';g('plDep').value=e.deposit||'';g('plBon').value=e.bonus||'';
+  g('plTurn').value=e.turnover||'';g('plWd').value=e.withdrawn||'';g('plStatus').value=e.status||ST[0];
+  g('plProj').value=(e.projEV==null?'':e.projEV);g('plNotes').value=e.notes||'';
+  g('formTitle').textContent='✎ Edit session';g('plClear').style.display='';g('plAdd').textContent='Update session';
+}
+
+function renderPaylog(){
+  const root=document.getElementById('paylog'); const ent=PL.entries;
+  const dep=ent.reduce((s,e)=>s+(+e.deposit||0),0), wd=ent.reduce((s,e)=>s+(+e.withdrawn||0),0);
+  const net=wd-dep, proj=ent.reduce((s,e)=>s+projOf(e),0), variance=net-proj;
+  const wins=ent.filter(e=>netOf(e)>0).length, bank=START+net;
+  const dlist=campaignCasinos();
+  root.innerHTML=`<div class="pl-wrap">
+    <div class="pl-stats">
+      ${plCard('Bankroll now','$'+Math.round(bank), bank>=START?'pos':'neg')}
+      ${plCard('Realized net',(net>=0?'+$':'−$')+Math.abs(Math.round(net)), net>=0?'pos':'neg')}
+      ${plCard('Projected (EV)',(proj>=0?'+$':'−$')+Math.abs(Math.round(proj)),'gold')}
+      ${plCard('Variance / luck',(variance>=0?'+$':'−$')+Math.abs(Math.round(variance)), variance>=0?'pos':'neg')}
+      ${plCard('Deposited','$'+Math.round(dep),'')}
+      ${plCard('Withdrawn','$'+Math.round(wd),'')}
+      ${plCard('Sessions',ent.length+' · '+wins+'W','')}
+    </div>
+    <div class="panel"><h3>📈 Bankroll over time — projected vs realized</h3>
+      <div>${ent.length?chartSVG():'<div class="empty">Log a session below to see your curve build.</div>'}</div>
+      <div class="legend"><span><i style="background:#36d399"></i>Realized bankroll</span><span><i style="background:#ffd166"></i>Projected (EV)</span><span><i style="background:#5b8cff"></i>Start $${START}</span></div>
+    </div>
+    <div class="panel"><h3 id="formTitle">➕ Log a session</h3>
+      <div class="pl-form">
+        <div><label>Date</label><input class="field" type="date" id="plDate" value="${today()}"></div>
+        <div><label>Casino</label><input class="field" id="plName" list="plCasinos" placeholder="e.g. We88" autocomplete="off"><datalist id="plCasinos">${dlist.map(c=>`<option value="${c.name}"></option>`).join('')}</datalist></div>
+        <div><label>Deposit $</label><input class="field" type="number" id="plDep" placeholder="0"></div>
+        <div><label>Bonus $</label><input class="field" type="number" id="plBon" placeholder="0"></div>
+        <div><label>Turnover $</label><input class="field" type="number" id="plTurn" placeholder="0"></div>
+        <div><label>Withdrawn $</label><input class="field" type="number" id="plWd" placeholder="0"></div>
+        <div><label>Status</label><select class="field" id="plStatus">${ST.map(s=>`<option>${s}</option>`).join('')}</select></div>
+        <div><label>Projected EV $ <span style="opacity:.6">(auto)</span></label><input class="field" type="number" id="plProj" placeholder="auto"></div>
+        <div style="grid-column:1/-1"><label>Notes</label><input class="field" id="plNotes" placeholder="code used, slot, withdrawal method…"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:13px;flex-wrap:wrap">
+        <button class="btn good" id="plAdd">Save session</button>
+        <button class="btn" id="plClear" style="display:none">Cancel edit</button>
+        <button class="btn" id="plImport">⤓ Import completed campaign missions</button>
+        <button class="btn" id="plCsv">⤒ Export CSV</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:10px">Net = Withdrawn − Deposit. <b>Variance</b> shows how far luck has pushed you from expectation — over many sessions it should trend toward $0 if your reads are right.</div>
+    </div>
+    <div class="panel"><h3>📒 Sessions (${ent.length})</h3>${ent.length?plTable():'<div class="empty">No sessions logged yet.</div>'}</div>
+  </div>`;
+  if(editId){const e=ent.find(x=>x.id===editId);if(e)fillForm(e);}
+}
+
+function savePlForm(){
+  const g=id=>document.getElementById(id);
+  const name=g('plName').value.trim();
+  if(!name){toast('Enter a casino name.');return;}
+  const prev=editId?PL.entries.find(x=>x.id===editId):null;
+  const rec={id: editId||('e'+Date.now().toString(36)),
+    date:g('plDate').value||today(), name, n:nForName(name),
+    deposit:num(g('plDep').value), bonus:num(g('plBon').value), turnover:num(g('plTurn').value),
+    withdrawn:num(g('plWd').value), status:g('plStatus').value,
+    projEV: g('plProj').value===''?null:num(g('plProj').value), notes:g('plNotes').value.trim(),
+    missionId: prev?prev.missionId:undefined};
+  if(editId){PL.entries[PL.entries.findIndex(x=>x.id===editId)]=rec;editId=null;}
+  else PL.entries.push(rec);
+  plSave();
+  if(rec.n!=null) syncTracker(rec.n,{deposit:String(rec.deposit),result:String(netOf(rec)),status:'deposited'});
+  toast('✓ Session saved.',true); renderPaylog(); renderHUD();
+}
+
+function importCampaign(){
+  let added=0;
+  TIERS.forEach(t=>{if(t.trap||t.id==='academy')return;t.missions.forEach(m=>{
+    const p=Q.prog[m.id]; if(!Q.done.includes(m.id)||!p)return;
+    if(PL.entries.some(x=>x.missionId===m.id))return;
+    const result=(p.result!=null)?+p.result:(m.ev||0);
+    const d=(p.deposit!=null&&p.deposit!=='')?num(p.deposit):(m.deposit||0);
+    PL.entries.push({id:'e'+Date.now().toString(36)+Math.floor(Math.random()*1e4),date:today(),name:m.name,n:m.n,missionId:m.id,
+      deposit:d,bonus:0,turnover:p.turnover||0,withdrawn:d+result,status:'withdrawn',projEV:m.ev,notes:'imported from campaign'});
+    added++;});});
+  plSave(); renderPaylog(); renderHUD();
+  toast(added?('⤓ Imported '+added+' mission(s).'):'Nothing new to import.',true);
+}
+
+function exportPlCsv(){
+  const head=['date','casino','n','deposit','bonus','turnover','withdrawn','net','projEV','status','notes'];
+  const rows=PL.entries.map(e=>[e.date,e.name,e.n||'',+e.deposit||0,+e.bonus||0,+e.turnover||0,+e.withdrawn||0,netOf(e),projOf(e),e.status||'',(e.notes||'').replace(/[\n,]/g,' ')]);
+  const csv=[head.join(','),...rows.map(r=>r.join(','))].join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='payout-log.csv';a.click();
+}
+
+document.getElementById('paylog').addEventListener('click',e=>{
+  if(e.target.id==='plAdd'){savePlForm();return;}
+  if(e.target.id==='plClear'){editId=null;renderPaylog();return;}
+  if(e.target.id==='plImport'){importCampaign();return;}
+  if(e.target.id==='plCsv'){exportPlCsv();return;}
+  const ed=e.target.closest('[data-edit]'); if(ed){editId=ed.dataset.edit;renderPaylog();window.scrollTo({top:0,behavior:'smooth'});return;}
+  const dl=e.target.closest('[data-del]'); if(dl){if(confirm('Delete this session?')){PL.entries=PL.entries.filter(x=>x.id!==dl.dataset.del);if(editId===dl.dataset.del)editId=null;plSave();renderPaylog();renderHUD();}return;}
+});
+document.getElementById('paylog').addEventListener('change',e=>{
+  if(e.target.id==='plName'){const pj=document.getElementById('plProj');if(pj&&!pj.value)pj.value=evForName(e.target.value);}
+});
+
+render();
+</script>
+</body>
+</html>
