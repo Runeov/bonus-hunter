@@ -761,11 +761,23 @@ document.getElementById('howBtn').addEventListener('click',()=>openMission("acad
 document.getElementById('boldBtn').addEventListener('click',boldPlay);
 function boldPlay(){
   const modal=document.getElementById('modal');
+  const PRESETS=[
+    {name:"— custom —"},
+    {name:"188BET · 100% / 1× turnover (no max)", match:100,turn:1,margin:4,odds:2.0,nomax:true},
+    {name:"SBOTOP · 100% / 5× (SBOBET ~2%, no max)", match:100,turn:5,margin:2,odds:2.0,nomax:true},
+    {name:"CampeonBet · 100% / 5×", match:100,turn:5,margin:4,odds:2.0,nomax:false},
+    {name:"Rabona · 100% / 5×(D+B)≈10×", match:100,turn:10,margin:4,odds:2.0,nomax:false},
+    {name:"We88 · 100% / 12× (≥1.50, no max)", match:100,turn:12,margin:4,odds:1.5,nomax:true},
+    {name:"BK8 · 130% / 12×(D+B)≈21× (no max)", match:130,turn:21,margin:4,odds:1.5,nomax:true},
+    {name:"22Bet · 100% / 5× ACCA (3 legs)", match:100,turn:5,margin:10,odds:1.4,nomax:false},
+  ];
   modal.innerHTML=`<div class="modal-h"><div><h3>📊 Bold-play calculator</h3>
     <div style="font-size:12px;color:var(--muted);margin-top:3px">No max bet? Simulate big high-odds bets vs grinding</div></div><span class="x" data-close>×</span></div>
     <div class="modal-b">
-      <div class="why">With <b>no max-bet cap</b> you can clear turnover in a few big bets instead of grinding. The truth: this is a <b>VARIANCE</b> choice, not an EV one. Punch in the offer and run the sim (sticky bonus model).</div>
+      <div class="why">With <b>no max-bet cap</b> you can clear turnover in a few big bets instead of grinding. The truth: this is a <b>VARIANCE</b> choice, not an EV one. Pick a preset or punch in your own offer.</div>
       <div class="pl-form" style="grid-template-columns:repeat(auto-fit,minmax(94px,1fr))">
+        <div style="grid-column:1/-1"><label>One-tap preset</label><select class="field" id="cPreset">${PRESETS.map((p,i)=>'<option value="'+i+'">'+p.name+'</option>').join('')}</select></div>
+        <div><label>Bonus type</label><select class="field" id="cType"><option value="sticky">Sticky (dep locked)</option><option value="nonsticky">Non-sticky (dep safe)</option></select></div>
         <div><label>Deposit $</label><input class="field" type="number" id="cDep" value="200"></div>
         <div><label>Bonus %</label><input class="field" type="number" id="cMatch" value="100"></div>
         <div><label>Turnover ×bonus</label><input class="field" type="number" id="cTurn" value="5"></div>
@@ -778,38 +790,49 @@ function boldPlay(){
         <span id="calcMeta" style="font-size:11px;color:var(--muted)"></span>
       </div>
       <div id="calcOut" style="margin-top:12px"></div>
-      <div class="stoprule" style="margin-top:14px">🧭 <b>Rules of thumb:</b> ≤5× turnover → <b>grind</b> (same EV, ~1% bust, usually walk away ahead). 10×+ with no max bet → <b>bold play</b> earns its keep. <b>Whole-stack = lottery.</b> You can't beat ≈(bonus − margin) on average — odds &amp; stake only move the variance.</div>
+      <div class="stoprule" style="margin-top:14px">🧭 <b>Rules of thumb:</b> ≤5× turnover → <b>grind</b> (same EV, ~1% bust, usually walk away ahead). 10×+ with no max bet → <b>bold play</b> earns its keep. <b>Whole-stack = lottery.</b> <b>Non-sticky</b> = you keep your deposit, so worst case net is $0 (the free bonus busts) — far gentler bust math. You can't beat ≈(bonus − margin) on average; odds &amp; stake only move variance.</div>
     </div>`;
   const $$=id=>document.getElementById(id);
   function runCalc(){
     const D=+$$('cDep').value||0, B=D*((+$$('cMatch').value||0)/100);
     const T=B*(+$$('cTurn').value||0), m=(+$$('cMargin').value||0)/100, d=Math.max(1.01,+$$('cOdds').value||2);
-    const mode=$$('cStake').value, N=25000, MIN=1, p=(1-m)/d, flat=Math.max(2,Math.round((D+B)*0.02));
-    let sum=0,bust=0,walk=0,big=0; const fin=new Array(N);
+    const mode=$$('cStake').value, sticky=$$('cType').value!=='nonsticky';
+    const N=25000, MIN=1, p=(1-m)/d, start= sticky ? (D+B) : B, flat=Math.max(2,Math.round((sticky?(D+B):B)*0.04));
+    let sum=0,bust=0,walk=0,big=0; const net=new Array(N);
     for(let i=0;i<N;i++){
-      let bal=D+B, turn=0, bets=0;
+      let bal=start, turn=0, bets=0;
       while(turn<T && bal>=MIN && bets<8000){
         let s = mode==='grind' ? Math.min(flat,bal) : (+mode)*bal;
         s=Math.min(s,bal); if(s<MIN) s=bal;
         turn+=s; bets++;
         if(Math.random()<p) bal+=s*(d-1); else bal-=s;
       }
-      const fv = turn>=T ? bal : 0; fin[i]=fv; sum+=fv;
-      if(fv<1e-9) bust++; if(fv>D) walk++; if(fv>2*D) big++;
+      const survivor = turn>=T ? bal : 0;
+      const fin = sticky ? survivor : (D+survivor);
+      const nv = fin - D; net[i]=nv; sum+=nv;
+      if(survivor<1e-9) bust++; if(nv>1e-9) walk++; if(fin>2*D) big++;
     }
-    fin.sort((a,b)=>a-b);
-    const ev=sum/N-D, med=fin[N>>1]-D, p95=fin[Math.floor(N*0.95)]-D;
+    net.sort((a,b)=>a-b);
+    const ev=sum/N, med=net[N>>1], p95=net[Math.floor(N*0.95)];
     const sign=x=>(x>=0?'+$':'−$')+Math.abs(Math.round(x));
-    $$('calcMeta').textContent=`bonus $${Math.round(B)} · turnover $${Math.round(T)} · win-prob ${(p*100).toFixed(1)}%/bet`;
+    $$('calcMeta').textContent=`bonus $${Math.round(B)} · turnover $${Math.round(T)} · win-prob ${(p*100).toFixed(1)}%/bet · ${sticky?'sticky':'non-sticky'}`;
     $$('calcOut').innerHTML=`<div class="pl-stats">
       <div class="pl-card"><div class="k">net EV</div><div class="v ${ev>=0?'pos':'neg'}">${sign(ev)}</div></div>
       <div class="pl-card"><div class="k">median</div><div class="v ${med>=0?'pos':'neg'}">${sign(med)}</div></div>
-      <div class="pl-card"><div class="k">P(bust)</div><div class="v ${bust>0.5?'neg':''}">${Math.round(bust*100)}%</div></div>
+      <div class="pl-card"><div class="k">${sticky?'P(lose dep)':'P(bonus busts)'}</div><div class="v ${bust>0.5?'neg':''}">${Math.round(bust*100)}%</div></div>
       <div class="pl-card"><div class="k">walk-ahead</div><div class="v ${walk>=0.5?'pos':''}">${Math.round(walk*100)}%</div></div>
       <div class="pl-card"><div class="k">P(&gt;2×)</div><div class="v">${Math.round(big*100)}%</div></div>
       <div class="pl-card"><div class="k">95th pct</div><div class="v gold">${sign(p95)}</div></div>
     </div>`;
   }
+  $$('cPreset').onchange=()=>{
+    const p=PRESETS[+$$('cPreset').value]; if(!p||!p.match){runCalc();return;}
+    $$('cMatch').value=p.match; $$('cTurn').value=p.turn; $$('cMargin').value=p.margin; $$('cOdds').value=p.odds;
+    if(!p.nomax) $$('cStake').value='grind';
+    runCalc();
+    $$('calcMeta').textContent += p.nomax ? '  ·  no max bet → bold play OK' : '  ·  max bet caps stake → grind';
+  };
+  $$('cType').onchange=runCalc;
   $$('calcRun').onclick=runCalc;
   document.getElementById('ovl').classList.add('on');
   runCalc();
