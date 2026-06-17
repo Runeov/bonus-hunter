@@ -168,6 +168,7 @@
     </div>
     <button class="btn sm" id="acctBtn">👤 Account</button>
     <a class="btn sm" href="index.html" style="text-decoration:none">🎰 Casino →</a>
+    <button class="btn sm" id="boldBtn">📊 Bold play</button>
     <button class="btn sm" id="howBtn">❓ How EV works</button>
     <button class="btn sm danger" id="resetBtn">↺ Reset campaign</button>
     <span id="syncNote" style="font-size:11.5px;color:var(--muted);align-self:center"></span>
@@ -569,6 +570,7 @@ function openMission(id){
     <div class="modal-b">
       <div class="why">💡 <b>Why this mission:</b> ${m.why||''}</div>
       <div class="stoprule">🛑 <b>Stop-rules:</b> ${m.stop||''}</div>
+      ${m.steps.includes("turnover")?`<div class="why">📊 <b>Max bet?</b> Check whether this bonus caps your stake. <b>No cap</b> → you can bold-play (a few big high-odds bets — tap "📊 Bold play"); it earns its keep mainly at 10×+ turnover. <b>Capped</b> (the EU books cap ~$5) → grind small singles, which is safe and ~same EV at low turnover. The TH-facing books here show no max in our data — verify on site.</div>`:""}
       <div class="stopwin" id="stopwinBanner"><h4>🎉 Turnover complete — WITHDRAW NOW</h4>
         <p>The edge is spent. Click the withdraw step. Do NOT keep playing.</p></div>
       ${steps}
@@ -753,6 +755,33 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
   if(confirm("Reset campaign progress? (Your betTrackerV1 data is NOT touched.)")){Q=fresh();save();render();toast("Campaign reset.");}
 });
 document.getElementById('howBtn').addEventListener('click',()=>openMission("academy"));
+document.getElementById('boldBtn').addEventListener('click',boldPlay);
+function boldPlay(){
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<div class="modal-h"><div><h3>📊 No max bet? The bold-play option</h3>
+    <div style="font-size:12px;color:var(--muted);margin-top:3px">Monte-Carlo · $200 deposit + $200 bonus · 4% margin · 120k sims</div></div><span class="x" data-close>×</span></div>
+    <div class="modal-b">
+      <div class="why">If a bonus has <b>no max-bet cap</b>, you can clear the turnover with a few <b>big bets at higher odds (2.0–10.0)</b>, staking your whole or half balance, instead of grinding hundreds of small bets. The key truth from the sim: <b>this barely changes EV — it is a VARIANCE choice.</b> Bold play swaps a near-certain small profit for a small chance of a big score (and a big chance of losing your deposit).</div>
+      <div class="trap-math">5× turnover (low):
+  GRIND $20 @2.0      EV +$159 · bust  1% · walk-ahead 84%
+  half-stack @3.0     EV +$163 · bust 43% · walk-ahead 31%
+  WHOLE-stack @2.0    EV +$168 · bust 77% · walk-ahead 23%
+  WHOLE-stack @10     EV +$166 · bust 99% · ~1% shot at huge
+
+12× turnover (high):
+  GRIND $20 @2.0      EV +$107 · bust 14% · walk-ahead 65%
+  half-stack @5.0     EV +$158 · bust 82% · walk-ahead 15%
+  WHOLE-stack @2.0    EV +$155 · bust 89% · walk-ahead 11%</div>
+      <div class="stoprule">🧭 <b>How to choose:</b><br>
+        • <b>Low turnover (≤5×):</b> just GRIND small at min odds — same EV, ~1% bust, you almost always walk away ahead.<br>
+        • <b>High turnover (10×+) with no max bet:</b> bold play earns its keep — a few big high-odds bets either bust fast (you only lose the deposit; the bonus was free) or hit a multiplier and clear in a couple of bets, instead of slowly bleeding margin over a huge turnover.<br>
+        • <b>Whole-stack = lottery</b> (usually lose the deposit). <b>Half-stack @3.0</b> is the balanced middle.<br>
+        • You can't beat ≈(bonus − margin) on average — odds &amp; stake only move the variance.</div>
+      <div style="font-size:11px;color:var(--muted)">'walk-ahead' = chance you finish above your $200 deposit. If a max bet exists (≈$5 on the EU books) bold play isn't possible — grind, which is fine.</div>
+      <button class="btn primary full" data-close>Got it</button>
+    </div>`;
+  document.getElementById('ovl').classList.add('on');
+}
 
 /* ---- toast ---- */
 let tT;
