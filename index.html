@@ -222,8 +222,8 @@ const H = 0.035, START = 200;
 /* ============ ACCOUNTS (Supabase one-click login, no email verification) ============
    Demo-mode fallback: with no keys, "login" creates a local profile (this browser only).
    Paste your project keys below to enable real, cross-device cloud accounts.            */
-const SUPABASE_URL = "";        // <- paste your Supabase project URL to go live
-const SUPABASE_ANON_KEY = "";   // <- paste your anon (public) key
+const SUPABASE_URL = "https://dcboyhyiwgkqkutqgmqu.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjYm95aHlpd2drcWt1dHFnbXF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MTA2ODgsImV4cCI6MjA5NzI4NjY4OH0.KZvOHTunJHgzHXVVw087rZWsLzp_qsVvRWqa6YltsIo";
 const AUTH_LIVE = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
 let sb = AUTH_LIVE ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 let USER=null, SKIPPED=localStorage.getItem("bhAuthSkip")==="1", pushT=null;
