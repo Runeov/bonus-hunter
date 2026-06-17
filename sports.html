@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bonus Hunter — New Player Campaign</title>
+<title>Bonus Hunter — Sports Betting Campaign</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
@@ -158,17 +158,16 @@
 </head>
 <body>
 <header>
-  <h1>🎯 Bonus Hunter <span style="font-size:13px;color:var(--muted);font-weight:500">New Player Campaign</span></h1>
-  <p class="sub">Turn a <b>$200</b> bankroll into the best realistic return by hunting <b>only +EV bonuses</b> in the right order.
-  Every mission enforces the stop-rules for you. The big flashy bonuses are <b>locked traps</b> — you'll learn why.
-  Progress auto-syncs to your <b>Bonus &amp; Registration Tracker</b>.</p>
+  <h1>🏟️ Bonus Hunter <span style="font-size:13px;color:var(--muted);font-weight:500">Sports Betting Campaign</span></h1>
+  <p class="sub">Turn a <b>$200</b> bankroll into the best realistic return by hunting <b>only +EV sportsbook bonuses</b> in the right order.
+  Sports clears are cheap (low turnover on low-margin books) — the traps are <b>huge turnover</b> and <b>accumulator requirements</b>. Every mission enforces the stop-rules. Account &amp; tracker are shared with the casino campaign.</p>
   <div class="topbtns">
     <div class="seg" id="viewSeg">
       <button data-view="campaign" class="active">🎯 Campaign</button>
       <button data-view="paylog">📒 Payout Log</button>
     </div>
     <button class="btn sm" id="acctBtn">👤 Account</button>
-    <a class="btn sm" href="sports.html" style="text-decoration:none">🏟️ Sports →</a>
+    <a class="btn sm" href="index.html" style="text-decoration:none">🎰 Casino →</a>
     <button class="btn sm" id="howBtn">❓ How EV works</button>
     <button class="btn sm danger" id="resetBtn">↺ Reset campaign</button>
     <span id="syncNote" style="font-size:11.5px;color:var(--muted);align-self:center"></span>
@@ -214,9 +213,9 @@
 
 <script>
 /* ============================================================
-   ASSUMPTIONS (mirror the EV engine): $1≈35 THB≈10 NOK,
-   slots RTP 96.5% (h=3.5%), deposit sized to max each bonus.
-   EV figures are EXPECTED values — real sessions vary.
+   ASSUMPTIONS: $1≈35 THB≈10 NOK; low-margin Asian singles ≈ 4% hold
+   (accumulators ≈ 10%); a stake-not-returned free bet ≈ 70% of face.
+   EV figures are EXPECTED values — real sports results vary a lot.
    ============================================================ */
 const H = 0.035, START = 200;
 
@@ -303,7 +302,7 @@ function syncTracker(n,patch){const o=btLoad();const r=btRec(o,n);Object.assign(
   document.getElementById('syncNote').textContent="✓ synced to betTrackerV1 ("+new Date().toLocaleTimeString()+")";cloudPush();}
 
 /* ---- quest state ---- */
-const Q_KEY="onboardingQuestV1";
+const Q_KEY="sportsQuestV1";
 let Q = load();
 function load(){try{return JSON.parse(localStorage.getItem(Q_KEY))||fresh()}catch(e){return fresh()}}
 function fresh(){return{xp:0,badges:[],prog:{},done:[],seenTraps:[]}}
@@ -313,163 +312,144 @@ function prog(id){return Q.prog[id]||(Q.prog[id]={steps:[],deposit:null,turnover
 /* ---- step factories ---- */
 const S = {
   confirm:(d)=>({id:"confirm",type:"task",lab:"Confirm the terms on the official site",
-    det:"Check the live wagering requirement, the max bet while a bonus is active ("+(d.maxbet?("$"+d.maxbet):"~$5")+"), bonus-eligible game RTP, and any max-cashout cap. Terms change — never trust the headline."}),
+    det:"Check the turnover multiple, the <b>minimum odds</b> (e.g. ≥ 1.50 — lower-odds bets won't count), whether <b>accumulators are required</b>, excluded markets, max stake while a bonus is active, and the expiry. Terms change — never trust the headline."}),
   register:(d)=>({id:"register",type:"task",sync:{status:"registered",date:"today"},
     lab:"Register your account", det:"One account per brand, real details. Multi-accounting voids winnings."}),
   kyc:(d)=>({id:"kyc",type:"task",sync:{kyc:true},lab:"Verify (KYC) if required",
-    det:"Do it BEFORE depositing where possible — unverified accounts are the #1 cause of blocked withdrawals. No-KYC crypto sites can skip this."}),
+    det:"Do it BEFORE depositing where possible — unverified accounts are the #1 cause of blocked withdrawals. No-KYC crypto books can skip this."}),
   deposit:(d)=>({id:"deposit",type:"deposit",rec:d.deposit,
-    lab:"Deposit the recommended amount", det:"Recommended: <b>$"+d.deposit+"</b>. This sizes the bonus to its cap without over-committing your $200. Never deposit more to 'unlock' a bigger match."}),
+    lab:"Deposit the recommended amount", det:"Recommended: <b>$"+d.deposit+"</b> — sizes the bonus to its cap without over-committing your $200."}),
   claim:(d)=>({id:"claim",type:"task",sync:{bonus:d.bonusTxt||""},lab:"Opt in / claim the bonus",
-    det:"Enter any required code and confirm the bonus is credited. "+(d.bonusTxt?("This offer: "+d.bonusTxt):"")}),
-  wager:(d)=>({id:"wager",type:"wager",target:d.turnover,maxbet:d.maxbet||5,
-    lab:"Clear the wagering — turnover $"+d.turnover.toLocaleString(),
-    det:"Play a high-RTP, low-volatility slot at flat small stakes (≤$"+(d.maxbet||5)+"/bet, ~1–2% of balance). Low variance = best chance to finish the clear. Log your turnover as you go."}),
-  stopwin:(d)=>({id:"stopwin",type:"stopwin",lab:"STOP-WIN gate — withdraw the moment WR hits 100%",
-    det:"The +EV existed only DURING the clear. Every spin after is pure −EV. Withdraw now."}),
+    det:"Enter any required code and confirm the bonus (or free bet) is credited. "+(d.bonusTxt?("This offer: "+d.bonusTxt):"")}),
+  qbet:(d)=>({id:"qbet",type:"task",lab:"Place the qualifying bet at minimum odds",
+    det:"Some offers need a qualifying deposit bet at/above the minimum odds to release the bonus or free bet. Use a single selection, not an accumulator."}),
+  turnover:(d)=>({id:"turnover",type:"wager",target:d.turnover,maxbet:d.maxbet||10,
+    lab:"Clear the turnover — $"+(d.turnover||0).toLocaleString(),
+    det:"Bet through it with <b>SINGLES at the minimum odds</b> on the lowest-margin markets (Asian handicaps). <b>Avoid accumulators</b> — each leg multiplies the margin against you. Log your turnover as you go."}),
+  freebet:(d)=>({id:"freebet",type:"task",lab:"Use the free bet on ONE pick at higher odds",
+    det:"A stake-not-returned free bet is worth ~70% of its face. Maximise it: put it on a <b>single</b> at higher odds (~3.0–5.0), not a short-priced favourite, and never split across bets."}),
+  stopwin:(d)=>({id:"stopwin",type:"stopwin",lab:"STOP-WIN gate — withdraw when turnover hits 100%",
+    det:"The +EV existed only while clearing. Every extra bet after just pays the margin. Withdraw now."}),
   withdraw:(d)=>({id:"withdraw",type:"task",lab:"Withdraw to your wallet",det:"Cash out the full balance. Don't leave funds 'for next time'."}),
   result:(d)=>({id:"result",type:"result",expect:d.ev,lab:"Log your result",
-    det:"Enter net profit/loss for this mission. Expected ≈ <b>+$"+d.ev+"</b> — but variance is real; a single run can differ a lot."}),
-  /* pure-value tier */
-  activate:(d)=>({id:"activate",type:"task",lab:"Activate cashback / rakeback",
-    det:"No wagering trap here — the rebate just shrinks the house edge. Opt into the loyalty/rakeback scheme."}),
-  playbudget:(d)=>({id:"playbudget",type:"task",lab:"Play only within your set budget",
-    det:"Set a session loss-limit first. Cashback softens losses; it is NOT a reason to deposit more."}),
-  collect:(d)=>({id:"collect",type:"result",expect:d.ev,lab:"Collect the rebate & log result",
-    det:"Claim the rakeback/cashback. Value is volume-based — expected ≈ <b>+$"+d.ev+"</b> over modest play."}),
-  /* non-sticky */
-  nsplay:(d)=>({id:"nsplay",type:"task",lab:"Cash → bet-to-double on BACCARAT, then clear on SLOTS",
-    det:"Non-sticky = your deposit is withdrawable; only the bonus is at risk. <b>Step 1 (cash):</b> if baccarat is allowed, bet your cash to ~double on banker — house edge ~1.06%, the cheapest variance you can buy (fewer, larger even-money bets = least edge paid). Hit your target → withdraw, bonus untouched. <b>Step 2 (bonus):</b> if the cash busts, the parachute deploys → switch to <b>slots</b> (100% wagering weight; baccarat barely counts) to clear the WR. ⚠ Check the max-bet-while-bonus rule — it can cap your baccarat stake even on your own cash."}),
-  nswithdraw:(d)=>({id:"nswithdraw",type:"task",lab:"Withdraw deposit anytime / cash out winnings",
-    det:"Because it's non-sticky you can pull your deposit whenever you stop. Worst case you lose only the planned bonus-phase stake — never your full $200."}),
+    det:"Enter net profit/loss for this mission. Expected ≈ <b>+$"+d.ev+"</b> — but sports variance is real; a single run can swing hard."}),
+  activate:(d)=>({id:"activate",type:"task",lab:"Activate the free bet / cashback / rakeback",
+    det:"No turnover trap here — the rebate or free bet is value with little or nothing to clear. Opt in."}),
+  playbudget:(d)=>({id:"playbudget",type:"task",lab:"Bet only within your set budget",
+    det:"Set a session loss-limit first. Cashback/rakeback softens losses; it is NOT a reason to deposit or stake more."}),
+  collect:(d)=>({id:"collect",type:"result",expect:d.ev,lab:"Collect the value & log result",
+    det:"Use the free bet / claim the rebate. Expected ≈ <b>+$"+d.ev+"</b>."}),
 };
 
 /* ============================================================
    CAMPAIGN DATA — built from the EV engine on your 85-site list
    ============================================================ */
 const TIERS = [
-  {id:"academy",name:"🎓 The Academy",tag:"START HERE",tagcls:"",
-   desc:"One 60-second lesson + a quiz. This is the whole game in a nutshell — finish it to unlock the campaign.",
-   missions:[{
-     id:"academy",n:null,name:"The One Rule",ev:0,risk:"—",rcls:"r1",
-     chips:["Tutorial"], sub:"Why bonus size ≠ value.",
-     academy:true
-   }]},
+  {id:"academy",name:"\U0001F393 The Academy",tag:"START HERE",tagcls:"",
+   desc:"One 60-second lesson + a quiz on how sports-bonus EV works. Finish it to unlock the campaign.",
+   missions:[{id:"academy",n:null,name:"The Sports Rule",ev:0,risk:"—",rcls:"r1",chips:["Tutorial"],sub:"Turnover × margin, min odds, and the acca trap.",academy:true}]},
 
-  {id:"t1",name:"Tier 1 — Pure Value",tag:"No wagering trap · safest",tagcls:"safe",
-   desc:"Cashback & rakeback offers. There is NO clearing requirement — the rebate directly reduces the house edge, so you can't be trapped. Always harvest these first; they protect the bankroll that funds everything else.",
+  {id:"t1",name:"Tier 1 — Pure Value",tag:"Free bets · low/no turnover · safest",tagcls:"safe",
+   desc:"Free bets, risk-free bets, rakeback and 1× rollover offers — little or nothing to clear, so the value lands almost regardless of variance. Harvest these first.",
    missions:[
-     {id:"m77",n:77,name:"Thrill",ev:8,risk:"Very low",rcls:"r1",
-      bonusTxt:"Up to 70% Rakeback + 10% Cashback (no rollover)",deposit:50,turnover:0,maxbet:5,
-      chips:["No rollover","Rakeback","Cashback"],sub:"Rebate on losses, no wagering. Pure value.",
-      why:"No wagering requirement at all. A 10% cashback on net losses lowers your effective house edge directly — the rare offer that's +EV with zero clearing risk.",
-      stop:"Collect rakeback on schedule. <b>Never</b> deposit more just to 'earn more' rebate — the rebate is a fraction of losses, not free money.",
+     {id:"s66",n:66,name:"188BET",ev:120,risk:"Low",rcls:"r1",
+      bonusTxt:"100% match · only 1× deposit rollover (Isle of Man)",deposit:200,turnover:200,maxbet:10,
+      chips:["1× rollover","Reputable"],sub:"100% match, ~one round of betting to clear.",
+      why:"A 100% match with only 1× rollover is nearly free money: bet your deposit+bonus through once at min odds, expected cost is a few %, you keep almost all the bonus. Isle of Man licensed = trustworthy payouts.",
+      stop:"<b>Clear with singles</b> at min odds, then withdraw. Don't bet past 1× — the edge is gone.",
+      steps:["confirm","register","kyc","deposit","claim","turnover","stopwin","withdraw","result"]},
+     {id:"s69",n:69,name:"Betway",ev:110,risk:"Very low",rcls:"r1",
+      bonusTxt:"100% Free Bet up to $200 (MGA licensed)",deposit:200,turnover:0,maxbet:10,
+      chips:["Free bet","MGA"],sub:"Free bet ≈ 70% of face when used well.",
+      why:"A stake-not-returned free bet is worth ~70% of its face if used on a single at higher odds. Top-tier MGA licensing = the safest payout in the list.",
+      stop:"Use the free bet on ONE pick at ~3.0–5.0 odds — never a short favourite, never split. Then bank it.",
+      steps:["confirm","register","kyc","deposit","qbet","freebet","result"]},
+     {id:"s26",n:26,name:"Leon Bet",ev:90,risk:"Low",rcls:"r1",
+      bonusTxt:"Up to 20 free bets (pool 4,000 NOK) · 1× net-win rollover, odds 1.75–5.00",deposit:100,turnover:0,maxbet:10,
+      chips:["Free bets","1× net-win"],sub:"Free bets; only net winnings roll over once.",
+      why:"Free bets where only the NET WINNINGS need 1× rollover at decent odds — very low clearing cost, so most of the free-bet value converts.",
+      stop:"Use each free bet on a single in the 1.75–5.00 band; clear the 1× on winnings; withdraw within the 48h windows.",
+      steps:["confirm","register","kyc","claim","freebet","turnover","withdraw","result"]},
+     {id:"s6",n:6,name:"1xBet",ev:30,risk:"Low",rcls:"r1",
+      bonusTxt:"No-Risk bet (up to ~200 NOK back if it loses)",deposit:50,turnover:0,maxbet:10,
+      chips:["Risk-free bet"],sub:"Lose the first bet → stake refunded as a bonus.",
+      why:"A risk-free / no-risk bet returns ~25–30% of its face in EV. The full deposit MATCH is a separate, higher-turnover acca offer — treat that as Tier 3, not this.",
+      stop:"Place the no-risk bet at moderate odds; if refunded, re-extract the refund at higher odds. Ignore the big match unless you've read its acca terms.",
+      steps:["confirm","register","kyc","deposit","qbet","result"]},
+     {id:"s70",n:70,name:"Stake",ev:10,risk:"Very low",rcls:"r1",
+      bonusTxt:"10% lifetime rakeback · no rollover",deposit:50,turnover:0,maxbet:10,
+      chips:["No rollover","Rakeback"],sub:"A standing rebate on margin paid — no clearing.",
+      why:"10% rakeback with no rollover directly returns part of the margin you pay — pure value, nothing to clear. Note: Stake's headline SPORTS welcome (200% / 40×) is a trap — see the Trap Zone.",
+      stop:"Collect rakeback on schedule. Don't raise stakes to 'earn' more rebate.",
       steps:["confirm","register","kyc","deposit","activate","playbudget","collect"]},
-     {id:"m79",n:79,name:"Cloudbet",ev:7,risk:"Very low",rcls:"r1",
-      bonusTxt:"100% up to 2,500 USDT released as 30% rakeback",deposit:50,turnover:0,maxbet:5,
-      chips:["Rakeback release","Crypto"],sub:"Bonus unlocks as cash rakeback as you play.",
-      why:"The match isn't sticky — it's released incrementally as rakeback while you play. No giant turnover wall; you keep what releases even if you stop.",
-      stop:"Stop whenever you like — released rakeback is already yours. Don't chase the full match by overplaying.",
-      steps:["confirm","register","kyc","deposit","activate","playbudget","collect"]},
-     {id:"m82",n:82,name:"Bitcasino.io",ev:6,risk:"Very low",rcls:"r1",
-      bonusTxt:"Up to 1,500 USDT — cashback / loyalty (no wagering)",deposit:50,turnover:0,maxbet:5,
-      chips:["No rollover","Loyalty"],sub:"Rewards via cashback & loyalty, not a match.",
-      why:"Value comes from a no-wager cashback/loyalty model rather than a trapped match bonus — so there's nothing to clear.",
-      stop:"Treat loyalty perks as a small rebate. Budget first; the perks don't change the games' edge much.",
-      steps:["confirm","register","kyc","deposit","activate","playbudget","collect"]},
-     {id:"m78",n:78,name:"Winz.io",ev:4,risk:"Very low",rcls:"r1",
-      bonusTxt:"Zero-wager free spins ('Wheel of Winz')",deposit:20,turnover:0,maxbet:5,
-      chips:["Zero wagering","Free spins"],sub:"Spin winnings are withdrawable instantly.",
-      why:"Free-spin winnings carry ZERO wagering — whatever you win is immediately cashable. Small but pure upside.",
-      stop:"Take the spins, withdraw any winnings, done. No deposit chasing.",
-      steps:["confirm","register","kyc","activate","collect"]},
    ]},
 
-  {id:"t2",name:"Tier 2 — Low-WR Clears",tag:"The hard +EV · deposit at risk",tagcls:"edge",
-   desc:"100%-ish matches with LOW turnover (10–25×) — the only sticky bonuses whose math is positive on a 96.5% slot. Your deposit IS at risk to variance here, so do them only after Tier 1, one at a time, with strict stop-rules.",
+  {id:"t2",name:"Tier 2 — Low-Turnover Clears",tag:"5× singles · the workhorse +EV",tagcls:"edge",
+   desc:"100% matches with only ~5× turnover, clearable with SINGLES at min odds. On low-margin books this is strongly +EV. Deposit is at risk to variance, so do these after Tier 1, one at a time.",
    missions:[
-     {id:"m51",n:51,name:"BK8",ev:32,risk:"Medium",rcls:"r2",verify:true,
-      bonusTxt:"100% Slots welcome · 12× turnover (Dep+Bonus)",deposit:200,turnover:4800,maxbet:5,
-      chips:["12× turnover","VERIFY cap"],sub:"Lowest WR in the list — confirm the casino cap.",
-      why:"12× turnover on Dep+Bonus at h=3.5% ⇒ expected cost ≈ $168 vs a $200 bonus ⇒ +$32. The single best clear-style EV here — IF the 100%/$200 cap is real. Confirm before depositing.",
-      stop:"<b>Stop-loss:</b> if the deposit busts before WR, walk — do not redeposit to chase. <b>Stop-win:</b> WR done → withdraw instantly.",
-      steps:["confirm","register","kyc","deposit","claim","wager","stopwin","withdraw","result"]},
-     {id:"m52",n:52,name:"We88",ev:23,risk:"Medium",rcls:"r2",
-      bonusTxt:"100% up to 5,000 THB (~$143) · 12× turnover (Dep+Bonus)",deposit:143,turnover:3429,maxbet:5,
-      chips:["12× turnover"],sub:"Deposit $143 → $143 bonus, clear $3,429.",
-      why:"12× turnover on Dep+Bonus ($286 base) ⇒ ~$120 expected cost vs $143 bonus ⇒ +$23. Solid, well-defined +EV.",
-      stop:"<b>Stop-loss:</b> deposit gone before WR = move on. <b>Stop-win:</b> hit 100% → withdraw, don't keep spinning.",
-      steps:["confirm","register","kyc","deposit","claim","wager","stopwin","withdraw","result"]},
-     {id:"m75",n:75,name:"MS.Slot",ev:18,risk:"Medium",rcls:"r2",
-      bonusTxt:"150% Slots up to 5,000 THB (~$143) · 25× bonus",deposit:95,turnover:3571,maxbet:5,
-      chips:["25× bonus"],sub:"Deposit $95 → max the $143 bonus.",
-      why:"25× on bonus only ($143) ⇒ ~$125 cost vs $143 bonus ⇒ +$18. Just inside the +EV line — slot RTP matters; verify it's ~96.5%.",
-      stop:"<b>Stop-win</b> at 100% WR. Because margin is thin, a low-RTP slot can flip this negative — stick to the highest-RTP eligible title.",
-      steps:["confirm","register","kyc","deposit","claim","wager","stopwin","withdraw","result"]},
-     {id:"m76",n:76,name:"I828",ev:11,risk:"Medium",rcls:"r2",
-      bonusTxt:"100% up to 3,000 THB (~$86) · 25× bonus",deposit:86,turnover:2143,maxbet:5,
-      chips:["25× bonus"],sub:"Smaller, but cleanly positive.",
-      why:"25× on $86 bonus ⇒ ~$75 cost vs $86 ⇒ +$11. Lower stake, lower variance — a good confidence-builder clear.",
-      stop:"<b>Stop-win</b> at 100%. <b>Stop-loss</b> = the $86 deposit, no chasing.",
-      steps:["confirm","register","kyc","deposit","claim","wager","stopwin","withdraw","result"]},
-     {id:"m74",n:74,name:"Huc99",ev:0,risk:"Verify",rcls:"r2",verify:true,
-      bonusTxt:"100% register / free-trial bonus · 10× wagering",deposit:0,turnover:0,maxbet:5,
-      chips:["10× wagering","VERIFY"],sub:"Lowest WR of all — if it's a no-deposit trial, it's pure +EV.",
-      why:"10× wagering is the lowest in your whole list. If this is a genuine no-deposit / free-trial bonus, the EV is strongly positive with zero deposit risk. Confirm the exact terms & amount first.",
-      stop:"If no-deposit: <b>nothing to lose</b> — clear the 10× and withdraw. If it requires a deposit, treat like a Tier-2 clear with stop-loss.",
-      steps:["confirm","register","kyc","claim","wager","stopwin","withdraw","result"]},
+     {id:"s5",n:5,name:"Rabona",ev:120,risk:"Medium",rcls:"r2",
+      bonusTxt:"100% up to 5,000 NOK · 5× (Dep+Bonus), singles at 2.00 + 50% bet-builder rebate",deposit:200,turnover:2000,maxbet:10,
+      chips:["5× D+B","Singles 2.00"],sub:"Clear with singles at 2.00 — plus a bet-builder rebate.",
+      why:"5× on Dep+Bonus, clearable with SINGLES at 2.00 (no acca forced). At ~4% margin the clear costs ~$80 vs a $200 bonus ⇒ ~+$120. The 50% bet-builder rebate is extra. Same engine as Fezbet / Sportaza / Wazamba / Spinanga.",
+      stop:"Singles at 2.00 only — do NOT take the multi route. Stop-win at 100%. If the deposit busts first, walk; don't redeposit.",
+      steps:["confirm","register","kyc","deposit","claim","turnover","stopwin","withdraw","result"]},
+     {id:"s49",n:49,name:"CampeonBet",ev:120,risk:"Medium",rcls:"r2",
+      bonusTxt:"100% up to 1,500 NOK · 5× wagering on singles",deposit:150,turnover:750,maxbet:10,
+      chips:["5× bonus","Singles"],sub:"Straightforward 5× singles clear.",
+      why:"5× on the bonus, clearable with singles ⇒ clean, low-turnover +EV (~+$120 on a $150 bonus). Multi-provider book with reasonable margins.",
+      stop:"Singles at min odds, stop-win at 100% turnover, withdraw. No accumulators.",
+      steps:["confirm","register","kyc","deposit","claim","turnover","stopwin","withdraw","result"]},
+     {id:"s62",n:62,name:"SBOTOP",ev:24,risk:"Medium",rcls:"r2",
+      bonusTxt:"100% up to 1,000 THB · 5× turnover (SBOBET odds, Isle of Man)",deposit:29,turnover:145,maxbet:10,
+      chips:["5× turnover","Lowest margin"],sub:"SBOBET = lowest-margin book → cheapest turnover (small cap).",
+      why:"SBOBET runs the tightest margins in the market (~2%), so 5× turnover costs almost nothing relative to the bonus. Isle of Man licensed. Best value-PER-turnover here — the catch is the small cap (~$29).",
+      stop:"Clear with low-margin singles (Asian handicaps) at min odds. Stop-win at 100% turnover, withdraw.",
+      steps:["confirm","register","kyc","deposit","claim","turnover","stopwin","withdraw","result"]},
    ]},
 
-  {id:"t3",name:"Tier 3 — Parachute (Non-Sticky)",tag:"Deposit-safe · high variance",tagcls:"var",
-   desc:"Non-sticky 'parachute' bonuses. The WR is too high to clear flat, BUT your deposit is recoverable — you only ever risk the bonus phase. <b>Our play: bet the cash to double on baccarat (lowest edge ~1.06%), then clear any bonus phase on slots (100% weight).</b> Optional, high-variance upside.",
+  {id:"t3",name:"Tier 3 — Higher Turnover / Accumulator",tag:"12×, or accas required · more variance",tagcls:"var",
+   desc:"Still +EV on paper, but either higher turnover (10–12×) or an ACCUMULATOR requirement — and every acca leg multiplies the margin against you, with brutal variance. Optional; size down and expect swings.",
    missions:[
-     {id:"m13",n:13,name:"Lilibet",ev:18,risk:"High variance",rcls:"r3",
-      bonusTxt:"100% up to 15,000 THB + 500 FS · 30× (D+B), non-sticky",deposit:100,turnover:0,maxbet:5,
-      chips:["Non-sticky","Parachute"],sub:"Lowest-WR non-sticky — best parachute play.",
-      why:"Non-sticky + 30× is the friendliest parachute here. Deposit recoverable; bold-play your cash to a target. Expected upside positive, but swingy.",
-      stop:"<b>Set a target & a walk-away</b> before you start. Hit target → withdraw. Bust cash → grind the bonus or quit. Never top up.",
-      steps:["confirm","register","kyc","deposit","claim","nsplay","nswithdraw","result"]},
-     {id:"m7",n:7,name:"Lucky Spins",ev:12,risk:"High variance",rcls:"r3",
-      bonusTxt:"100% up to 10,000 THB + 100 FS · 35× non-sticky (cash-reload)",deposit:100,turnover:0,maxbet:5,
-      chips:["Non-sticky"],sub:"Wager your own cash first; bonus as backup.",
-      why:"Cash-reload / non-sticky: your money plays first and is withdrawable. Positive only with disciplined bold-play; otherwise just take your deposit back.",
-      stop:"Same parachute rules: pre-set target, no chasing, deposit comes back if you quit early.",
-      steps:["confirm","register","kyc","deposit","claim","nsplay","nswithdraw","result"]},
-     {id:"m22",n:22,name:"Bitstarz",ev:10,risk:"High variance",rcls:"r3",
-      bonusTxt:"100% up to 1 BTC + 180 FS · 40× non-sticky",deposit:100,turnover:0,maxbet:5,
-      chips:["Non-sticky","Parachute"],sub:"Reputable crypto casino, deposit-safe bonus.",
-      why:"40× is high, so flat-clearing is −EV — but non-sticky means you risk only the bonus. Treat as a free shot on top of a recoverable deposit.",
-      stop:"Pre-set target. If you don't fancy the bold-play, just withdraw the deposit — you lose nothing.",
-      steps:["confirm","register","kyc","deposit","claim","nsplay","nswithdraw","result"]},
-     {id:"m86",n:86,name:"Coins.game",ev:18,risk:"High variance",rcls:"r3",
-      bonusTxt:"100% up to $1,000, NON-STICKY · 30× bonus (deposit recoverable)",deposit:100,turnover:0,maxbet:5,
-      chips:["Non-sticky","Parachute","30×"],sub:"Confirmed non-sticky — deposit-safe, lowest-WR parachute here.",
-      why:"Confirmed NON-STICKY: your deposit stays withdrawable and only the bonus is at risk. 30× is the friendliest parachute WR in the campaign (ties Lilibet). Bet your cash to double on baccarat (~1.06% edge); hit target → withdraw. Bust the cash → the bonus deploys, clear it on slots.",
-      stop:"Pre-set a target and a walk-away first. Hit target → withdraw. Don't fancy the bold-play? Just pull your deposit — you lose nothing. Never top up to chase.",
-      steps:["confirm","register","kyc","deposit","claim","nsplay","nswithdraw","result"]},
+     {id:"s52",n:52,name:"We88",ev:74,risk:"High variance",rcls:"r3",
+      bonusTxt:"100% up to 5,000 THB · 12× turnover (odds <1.50 excluded)",deposit:143,turnover:1716,maxbet:10,
+      chips:["12× turnover","Singles"],sub:"12× singles — more betting, more variance.",
+      why:"12× turnover singles at min odds. At ~4% margin the clear costs ~$69 vs a $143 bonus ⇒ ~+$74 expected — but 12× is a lot of betting, so variance (and bust risk) is real.",
+      stop:"Singles at ≥1.50, lowest-margin markets. Stop-win at 100%. Walk if the balance busts before clearing.",
+      steps:["confirm","register","kyc","deposit","claim","turnover","stopwin","withdraw","result"]},
+     {id:"s4",n:4,name:"22Bet",ev:60,risk:"High variance",rcls:"r3",
+      bonusTxt:"100% up to 1,200 NOK · 5× but 3+ leg accumulators at 1.40+",deposit:120,turnover:600,maxbet:10,
+      chips:["5×","ACCA required"],sub:"Low turnover, but accumulators are forced.",
+      why:"Only 5× turnover, BUT it must be 3+ leg accumulators — each leg multiplies the margin (≈11% effective hold), so the real cost is far higher than 5× singles, and acca variance is severe. +EV on average, swingy in practice.",
+      stop:"Keep accas to the minimum 3 legs at ~1.40 to limit compounded margin. Treat as a variance play, not a steady clear.",
+      steps:["confirm","register","kyc","deposit","claim","turnover","stopwin","withdraw","result"]},
+     {id:"s51",n:51,name:"BK8",ev:21,risk:"High variance",rcls:"r3",
+      bonusTxt:"130% up to 5,000 THB · 12× turnover (Dep+Bonus), odds <1.50 excluded",deposit:110,turnover:3036,maxbet:10,
+      chips:["12× D+B","Singles"],sub:"Bigger match %, but 12× on Dep+Bonus.",
+      why:"130% is a larger bonus, but 12× applies to Deposit+Bonus, so turnover (~$3,000) is high. Still modestly +EV on low-margin singles; the variance over that much betting is the catch.",
+      stop:"Singles ≥1.50 only. Stop-win at 100% turnover. Don't chase if the balance busts.",
+      steps:["confirm","register","kyc","deposit","claim","turnover","stopwin","withdraw","result"]},
    ]},
 
   {id:"traps",name:"⛔ The Trap Zone",tag:"LOCKED · −EV",tagcls:"trap",
-   desc:"The biggest, flashiest bonuses in your list. They are permanently locked because the math is brutal — the headline % is bait. Click any to see exactly how much it's projected to LOSE. Resisting them is itself an achievement.",
+   desc:"The biggest sportsbook headlines — locked, because the turnover (or the accumulator requirement) eats the whole bonus. Click any to see the math. Resisting them earns a badge.",
    trap:true,
    missions:[
-     {id:"x2", n:2, name:"BC.Game",ev:-541,bonusTxt:"Up to 470% / $1,600 + 400 FS",wr:"45× bonus",turnover:42300,risk:"Trap",rcls:"r3",chips:["470% bait","45×"],sub:"Biggest headline = worst EV."},
-     {id:"x59",n:59,name:"BetGoat",ev:-416,bonusTxt:"380% up to $4,500",wr:"35× (D+B)",turnover:33600,risk:"Trap",rcls:"r3",chips:["380% bait","35× D+B"],sub:""},
-     {id:"x37",n:37,name:"Westace",ev:-403,bonusTxt:"350% up to 550,000 THB",wr:"35× (D+B)",turnover:31500,risk:"Trap",rcls:"r3",chips:["350% bait","35× D+B"],sub:""},
-     {id:"x1", n:1, name:"Stake",ev:-160,bonusTxt:"200% up to $2,000",wr:"40× bonus",turnover:16000,risk:"Trap",rcls:"r3",chips:["200% bait","40×"],sub:"Great brand, terrible welcome WR."},
-     {id:"x5", n:5, name:"Rabona",ev:-290,bonusTxt:"100% up to 5,000 NOK + 200 FS",wr:"35× (D+B)",turnover:14000,risk:"Trap",rcls:"r3",chips:["35× D+B"],sub:"The default 35×(D+B) trap — 30+ sites share it."},
+     {id:"z1", n:1, name:"Stake",ev:-240,bonus:400,bonusTxt:"200% up to $2,000",wr:"40× bonus, min odds 1.20",turnover:16000,m:0.04,risk:"Trap",rcls:"r3",chips:["200% bait","40×"],sub:"Great book, brutal welcome turnover."},
+     {id:"z16",n:16,name:"Goldenbet",ev:-200,bonus:200,bonusTxt:"100% up to 5,000 NOK",wr:"10× (D+B), 3+ leg accas at 1.40+",turnover:4000,m:0.10,risk:"Trap",rcls:"r3",chips:["10× D+B","ACCA"],sub:"Acca requirement compounds the margin."},
+     {id:"z65",n:65,name:"Fun88",ev:-76,bonus:190,bonusTxt:"488% up to ₹16,000 equiv.",wr:"35× turnover",turnover:6650,m:0.04,risk:"Trap",rcls:"r3",chips:["488% bait","35×"],sub:"Huge headline %, still negative after turnover."},
+     {id:"z43",n:43,name:"CBet",ev:-40,bonus:200,bonusTxt:"100% up to 5,000 NOK",wr:"30× bonus balance",turnover:6000,m:0.04,risk:"Trap",rcls:"r3",chips:["30×"],sub:"30× turnover — quietly −EV."},
    ]},
 ];
 
 /* ---- academy quiz ---- */
 const QUIZ = {
-  q:"A casino offers <b>300% up to $3,000</b> with <b>40× wagering on the bonus</b>, cleared on a 96.5% slot (house edge 3.5%). Is it +EV?",
+  q:"A sportsbook offers <b>100% up to $200</b> but the turnover must be cleared on <b>3-leg accumulators</b> at 1.40+. Versus a plain <b>5× singles</b> bonus, is it better or worse?",
   opts:[
-    {t:"Yes — 300% is a huge free bonus!",ok:false},
-    {t:"No — 40 × 3.5% = 1.4 > 1, so you lose ~40% of the bonus clearing it",ok:true},
-    {t:"Can't tell without knowing the deposit size",ok:false},
+    {t:"Better — accumulators pay bigger, so more value",ok:false},
+    {t:"Worse — each acca leg multiplies the margin against you, and variance explodes",ok:true},
+    {t:"The same — turnover is turnover",ok:false},
   ],
-  ex:"The rule: a match bonus is +EV only if <b>wagerX × house-edge &lt; 1</b>. Here 40 × 0.035 = 1.40, so expected clearing cost is 140% of the bonus — a guaranteed long-run loss. The headline 300% is irrelevant. THIS is why the campaign skips them."
+  ex:"The rule: a sports bonus is +EV if <b>turnover × effective-margin &lt; 1</b>. On SINGLES at a low-margin book (~4%), 5× costs ~20% of the bonus. But an ACCUMULATOR requirement multiplies the margin by each leg — three ~4% legs ≈ 11–12% effective hold per bet — and the all-or-nothing variance means you often bust before clearing. Always prefer SINGLES bonuses, and clear with singles at the minimum odds."
 };
 
 /* ============================================================
@@ -481,7 +461,7 @@ const BADGE_DEFS=[
   {id:"clear",emo:"💎",name:"First Clear — completed a low-WR clear"},
   {id:"cashrun",emo:"🚪",name:"Cash & Run — withdrew the instant WR hit 100%"},
   {id:"ice",emo:"🧊",name:"Ice Veins — logged a loss without chasing"},
-  {id:"chute",emo:"🪂",name:"Parachutist — completed a non-sticky mission"},
+  {id:"chute",emo:"🎲",name:"High Roller — completed a Tier-3 mission"},
   {id:"dodger",emo:"🚫",name:"Trap Dodger — inspected a trap and walked away"},
   {id:"crown",emo:"👑",name:"Campaign Complete — finished every recommended mission"},
 ];
@@ -589,7 +569,7 @@ function openMission(id){
     <div class="modal-b">
       <div class="why">💡 <b>Why this mission:</b> ${m.why||''}</div>
       <div class="stoprule">🛑 <b>Stop-rules:</b> ${m.stop||''}</div>
-      <div class="stopwin" id="stopwinBanner"><h4>🎉 Wagering complete — WITHDRAW NOW</h4>
+      <div class="stopwin" id="stopwinBanner"><h4>🎉 Turnover complete — WITHDRAW NOW</h4>
         <p>The edge is spent. Click the withdraw step. Do NOT keep playing.</p></div>
       ${steps}
     </div>`;
@@ -612,7 +592,7 @@ function stepHTML(def,done,prevDone,m,p){
       <div class="turn-row"><input class="num" type="number" id="turnInput" placeholder="$ so far" value="${cur||''}">
         <button class="btn sm" id="turnSet">Update</button>
         <button class="btn sm" id="turnMax">+ $${def.maxbet}</button>
-        <span style="font-size:11px;color:var(--muted)">${cur.toLocaleString()} / ${def.target.toLocaleString()} · ≈${spins} spins @ $${def.maxbet}</span></div>`;
+        <span style="font-size:11px;color:var(--muted)">${cur.toLocaleString()} / ${def.target.toLocaleString()} · ≈${spins} bets at ~$${def.maxbet}</span></div>`;
   }
   if(def.type==="result"){
     extra=`<div class="turn-row"><input class="num" type="number" id="resInput" placeholder="net $ (e.g. ${def.expect})" value="${p.result??''}">
@@ -690,13 +670,13 @@ function keepPlayingWarn(){
   const modal=document.getElementById('modal');
   const o=modal.innerHTML;
   modal.insertAdjacentHTML('afterbegin',`<div id="warnFloat" style="position:sticky;top:0;z-index:5"></div>`);
-  toast("⚠ Every spin past 100% WR is pure −EV — the edge is gone.",true);
+  toast("⚠ Every bet past 100% turnover is pure −EV — the edge is gone.",true);
 }
 
 function checkCrown(){
   const need=[]; TIERS.forEach(t=>{if(["t1","t2","t3"].includes(t.id))t.missions.forEach(m=>{if(!m.verify||m.id!=="m74")need.push(m.id);});});
   // crown when academy + at least the core +EV missions done (We88, MS.Slot, I828 + one tier1 + one tier3)
-  const core=["academy","m52","m75","m76","m77","m13"];
+  const core=["academy","s66","s69","s5","s62"];
   if(core.every(id=>Q.done.includes(id))) award("crown");
 }
 
@@ -705,21 +685,21 @@ function openTrap(id){
   const {m}=findMission(id);
   if(!Q.seenTraps.includes(id)){Q.seenTraps.push(id);save();}
   award("dodger");
-  const D=Math.round(m.turnover*0.035);
+  const mg=m.m||0.04, cost=Math.round(m.turnover*mg), bonus=m.bonus||0;
   const modal=document.getElementById('modal');
   modal.innerHTML=`<div class="modal-h"><div><h3>⛔ ${m.name} <span style="font-size:12px;color:var(--muted)">#${m.n}</span></h3>
       <div style="font-size:12px;color:var(--muted);margin-top:3px">${m.bonusTxt}</div></div><span class="x" data-close>×</span></div>
     <div class="modal-b">
-      <div class="stoprule">🎣 This is the bait. Big % + big wagering = big loss. Here's the math on a $200 deposit:</div>
+      <div class="stoprule">\U0001F3A3 Big headline, brutal terms. The math on a $200 deposit:</div>
       <div class="trap-math">offer        : ${m.bonusTxt}
-wagering     : ${m.wr}
-turnover req : $${m.turnover.toLocaleString()}
-house edge   : 3.5%  (96.5% slot)
-expected cost: $${m.turnover.toLocaleString()} × 0.035 = $${D.toLocaleString()}
-bonus value  : far less than the cost
-─────────────────────────────────────
-PROJECTED RESULT: −$${Math.abs(m.ev)}  (you lose your bankroll)</div>
-      <div class="why">✅ <b>The campaign skips this on purpose.</b> You just earned the 🚫 <b>Trap Dodger</b> badge for looking before leaping. Walk away and stick to Tiers 1–2.</div>
+requirement  : ${m.wr}
+turnover     : $${m.turnover.toLocaleString()}
+margin       : ${(mg*100).toFixed(0)}%  ${mg>=0.1?'(accumulators — margin compounds!)':'(singles)'}
+expected cost: $${m.turnover.toLocaleString()} × ${mg} = $${cost.toLocaleString()}
+bonus value  : ~$${bonus.toLocaleString()}  (less than the cost)
+─────────────────────────────
+PROJECTED RESULT: −$${Math.abs(m.ev)}</div>
+      <div class="why">✅ <b>The campaign skips this on purpose.</b> You earned the \U0001F6AB <b>Trap Dodger</b> badge for looking before leaping. Stick to Tiers 1–2.</div>
       <button class="btn primary full" data-close>Got it — I'll skip it</button>
     </div>`;
   document.getElementById('ovl').classList.add('on');
@@ -729,18 +709,21 @@ PROJECTED RESULT: −$${Math.abs(m.ev)}  (you lose your bankroll)</div>
 /* ---- academy ---- */
 function academyHTML(){
   const done=Q.done.includes("academy");
-  return `<div class="modal-h"><div><h3>🎓 The One Rule</h3>
+  return `<div class="modal-h"><div><h3>\U0001F393 The Sports Rule</h3>
     <div style="font-size:12px;color:var(--muted);margin-top:3px">The whole game in 60 seconds</div></div><span class="x" data-close>×</span></div>
     <div class="modal-b">
-      <div class="why">Every casino game loses money long-term (the <b>house edge</b>). For a new player the only real edge is the <b>welcome bonus</b> — but it's locked behind <b>wagering (WR)</b>. The bonus is worth taking only if:
-        <div class="trap-math" style="color:#bdf5d6;border-color:#256047;background:#10271c">WR × house-edge  &lt;  1
+      <div class="why">Sportsbooks earn from the <b>margin</b> baked into their odds. A welcome bonus is worth taking only if its turnover is cheap to clear:
+        <div class="trap-math" style="color:#bdf5d6;border-color:#256047;background:#10271c">turnover × effective-margin  &lt;  1
 
-slot edge ≈ 3.5%  →  take it only if WR ≲ 28× (bonus)  or ≲ 14× (Dep+Bonus)</div>
-        That's it. Big headline %? Irrelevant. A 470% bonus at 45× WR loses money; a boring 100% at 12× makes money.</div>
-      <div class="stoprule">🛑 The 3 stop-rules this game enforces for you:
-        <br>1. <b>Stop-loss</b> — deposit busts before WR? Walk. Never redeposit to chase.
-        <br>2. <b>Stop-win</b> — WR hits 100%? Withdraw instantly. Every spin after is −EV.
-        <br>3. <b>Budget</b> — only ever stake your planned amount; bonuses are not a reason to deposit more.</div>
+low-margin singles ≈ 4%  →   5× costs ~20% of the bonus  (great)
+                            12× costs ~48%             (ok)
+                            35–40× costs MORE than the bonus  (trap)</div>
+        Turnover here is usually low (5–12×) on tight-margin Asian books, so MOST sports bonuses are +EV. Two things flip them negative: <b>huge turnover (35–40×)</b> and <b>accumulator requirements</b> (each leg multiplies the margin).</div>
+      <div class="stoprule">\U0001F6D1 The rules this game enforces for you:
+        <br>1. <b>Clear with SINGLES at the minimum odds</b> — never the forced-acca route.
+        <br>2. <b>Free bets</b> are worth ~70% of face — use on ONE pick at higher odds (~3–5), never split.
+        <br>3. <b>Stop-win</b> — turnover hits 100%? Withdraw. Every extra bet just pays margin.
+        <br>4. <b>Stop-loss / budget</b> — bust before clearing? Walk. Never redeposit to chase.</div>
       <h4 style="margin:16px 0 4px">Quick check ${done?'<span style="color:var(--good)">✓ passed</span>':''}</h4>
       <p style="font-size:13px;color:var(--muted);margin:0 0 4px">${QUIZ.q}</p>
       <div class="quiz" id="quiz">${QUIZ.opts.map((o,i)=>`<div class="opt" data-opt="${i}">${o.t}</div>`).join("")}</div>
@@ -779,7 +762,7 @@ function toast(msg,gold){const el=document.getElementById('toast');el.textConten
    PAYOUT LOG — track real results over time (projected vs realized)
    Persists to its own key; never overwrites quest/tracker data.
    ============================================================ */
-const PL_KEY="payoutLogV1";
+const PL_KEY="sportsPayoutV1";
 let PL = plLoad();
 let editId=null;
 const ST=['in-progress','cleared','busted','withdrawn'];
@@ -828,7 +811,7 @@ function chartSVG(){
 
 function plTable(){
   const rows=[...PL.entries].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.id>a.id?1:-1));
-  return `<table class="pl"><thead><tr><th>Date</th><th>Casino</th><th>Dep</th><th>Bonus</th><th>Turnover</th><th>Withdrawn</th><th>Net</th><th>Proj</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>
+  return `<table class="pl"><thead><tr><th>Date</th><th>Book</th><th>Dep</th><th>Bonus</th><th>Turnover</th><th>Withdrawn</th><th>Net</th><th>Proj</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>
   ${rows.map(e=>{const net=netOf(e),pj=projOf(e);
     return `<tr><td>${e.date||''}</td><td>${e.name||''}${e.n?` <span style="color:var(--muted);font-size:10px">#${e.n}</span>`:''}</td>
       <td>$${+e.deposit||0}</td><td>$${+e.bonus||0}</td><td>$${(+e.turnover||0).toLocaleString()}</td><td>$${+e.withdrawn||0}</td>
@@ -870,7 +853,7 @@ function renderPaylog(){
     <div class="panel"><h3 id="formTitle">➕ Log a session</h3>
       <div class="pl-form">
         <div><label>Date</label><input class="field" type="date" id="plDate" value="${today()}"></div>
-        <div><label>Casino</label><input class="field" id="plName" list="plCasinos" placeholder="e.g. We88" autocomplete="off"><datalist id="plCasinos">${dlist.map(c=>`<option value="${c.name}"></option>`).join('')}</datalist></div>
+        <div><label>Sportsbook</label><input class="field" id="plName" list="plCasinos" placeholder="e.g. We88" autocomplete="off"><datalist id="plCasinos">${dlist.map(c=>`<option value="${c.name}"></option>`).join('')}</datalist></div>
         <div><label>Deposit $</label><input class="field" type="number" id="plDep" placeholder="0"></div>
         <div><label>Bonus $</label><input class="field" type="number" id="plBon" placeholder="0"></div>
         <div><label>Turnover $</label><input class="field" type="number" id="plTurn" placeholder="0"></div>

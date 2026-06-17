@@ -1,6 +1,6 @@
 # 🎯 Bonus Hunter — New Player Campaign
 
-A gamified, **EV-first** onboarding flow for new online-casino players. It takes a small starting bankroll (default **$200**) and walks you, quest-by-quest, through **only the positive-expected-value bonuses** — in the right order — while enforcing disciplined stop-rules as game mechanics.
+A gamified, **EV-first** onboarding flow for new online-casino **and sports-betting** players. It takes a small starting bankroll (default **$200**) and walks you, quest-by-quest, through **only the positive-expected-value bonuses** — in the right order — while enforcing disciplined stop-rules as game mechanics.
 
 Two single-file tools, no build step, no server, no dependencies. All your data stays in your own browser (`localStorage`).
 
@@ -12,7 +12,8 @@ Two single-file tools, no build step, no server, no dependencies. All your data 
 
 | File | What it is |
 |------|------------|
-| `index.html` | **Bonus Hunter** — the gamified campaign + payout log |
+| `index.html` | **Bonus Hunter (Casino)** — the gamified casino campaign + payout log |
+| `sports.html` | **Bonus Hunter (Sports)** — the sports-betting campaign (free bets, low-turnover clears, acca traps) |
 | `tracker.html` | **Bonus & Registration Tracker** — log registrations, KYC, deposits, wagering and results per platform |
 | `betting-platforms.json` | The raw platform list (85 records: bonus, wagering, licensing, type) |
 | `betting-ev-normalized.json` | Parsed/normalised EV fields (bonusPct, wagerX, capUSD, depositSafe, clearEV, verdict) |
