@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bonus Hunter — New Player Campaign</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bg:#0c0f17; --panel:#141925; --panel2:#1b2230; --border:#28314a;
@@ -166,6 +167,7 @@
       <button data-view="campaign" class="active">🎯 Campaign</button>
       <button data-view="paylog">📒 Payout Log</button>
     </div>
+    <button class="btn sm" id="acctBtn">👤 Account</button>
     <button class="btn sm" id="howBtn">❓ How EV works</button>
     <button class="btn sm danger" id="resetBtn">↺ Reset campaign</button>
     <span id="syncNote" style="font-size:11.5px;color:var(--muted);align-self:center"></span>
@@ -186,6 +188,26 @@
 <main id="campaign"></main>
 <main id="paylog" style="display:none"></main>
 
+<div class="ovl" id="authOvl"><div class="modal" style="max-width:440px">
+  <div class="modal-h"><div><h3>👋 Welcome, Bonus Hunter</h3>
+    <div style="font-size:12px;color:var(--muted);margin-top:3px">Save your campaign, payout log & XP</div></div></div>
+  <div class="modal-b">
+    <button class="btn good full" id="bhQuick" style="font-size:15px;padding:13px;justify-content:center">⚡ Quick login — one click, no email</button>
+    <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--accent);font-size:13px">Use an email instead (syncs across devices)</summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <input class="field" id="bhEmail" type="email" placeholder="email" autocomplete="username">
+        <input class="field" id="bhPw" type="password" placeholder="password" autocomplete="current-password">
+        <div style="display:flex;gap:8px">
+          <button class="btn primary" id="bhLogin" style="flex:1;justify-content:center">Log in</button>
+          <button class="btn" id="bhReg" style="flex:1;justify-content:center">Create account</button>
+        </div>
+      </div>
+    </details>
+    <div id="authErr" style="color:var(--bad);font-size:12px;margin-top:8px;min-height:14px"></div>
+    <div style="text-align:center;margin-top:6px"><a href="#" id="bhSkip" style="color:var(--muted);font-size:13px">Play as guest →</a></div>
+    <div id="authModeNote" style="font-size:11px;color:var(--muted);margin-top:14px;border-top:1px solid var(--border);padding-top:10px"></div>
+  </div>
+</div></div>
 <div class="ovl" id="ovl"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -197,20 +219,94 @@
    ============================================================ */
 const H = 0.035, START = 200;
 
+/* ============ ACCOUNTS (Supabase one-click login, no email verification) ============
+   Demo-mode fallback: with no keys, "login" creates a local profile (this browser only).
+   Paste your project keys below to enable real, cross-device cloud accounts.            */
+const SUPABASE_URL = "";        // <- paste your Supabase project URL to go live
+const SUPABASE_ANON_KEY = "";   // <- paste your anon (public) key
+const AUTH_LIVE = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
+let sb = AUTH_LIVE ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+let USER=null, SKIPPED=localStorage.getItem("bhAuthSkip")==="1", pushT=null;
+
+function authErr(m){const e=document.getElementById('authErr');if(e)e.textContent=m||"";}
+function showAuth(on){document.getElementById('authOvl').classList.toggle('on',!!on);}
+function updateAcct(){const b=document.getElementById('acctBtn');if(b)b.textContent=USER?("👤 "+(USER.label||"Player")):(SKIPPED?"👤 Guest":"👤 Log in");}
+
+async function initAuth(){
+  updateAcct();
+  document.getElementById('authModeNote').textContent = AUTH_LIVE
+    ? "Connected to Supabase — your progress syncs across devices."
+    : "Demo mode: login saves a profile in THIS browser only. Add Supabase keys in the file for real cross-device accounts.";
+  if(AUTH_LIVE){
+    try{const {data}=await sb.auth.getSession(); if(data.session){await onLogin(data.session.user);return;}}catch(e){}
+  }else{
+    const d=localStorage.getItem("bhDemoUser"); if(d){USER=JSON.parse(d);afterLogin(false);return;}
+  }
+  if(SKIPPED){updateAcct();return;}
+  showAuth(true);
+}
+async function quickLogin(){
+  authErr("");
+  if(AUTH_LIVE){
+    try{const {data,error}=await sb.auth.signInAnonymously(); if(error) throw error; await onLogin(data.user);}
+    catch(e){authErr((e.message||"Login failed")+" — enable Anonymous sign-ins in Supabase → Auth → Providers.");}
+  }else{
+    const id="demo-"+Date.now().toString(36); USER={id,label:"Player "+id.slice(-4)};
+    localStorage.setItem("bhDemoUser",JSON.stringify(USER)); afterLogin(false);
+  }
+}
+async function emailLogin(mode){
+  authErr(""); const email=document.getElementById('bhEmail').value.trim(), pw=document.getElementById('bhPw').value;
+  if(!email||!pw){authErr("Enter email and password.");return;}
+  if(AUTH_LIVE){
+    try{const fn=mode==='register'?sb.auth.signUp({email,password:pw}):sb.auth.signInWithPassword({email,password:pw});
+      const {data,error}=await fn; if(error) throw error;
+      if(!data.session){authErr("Account created — now click Log in.");return;}
+      await onLogin(data.user);}catch(e){authErr(e.message||"Auth failed.");}
+  }else{
+    USER={id:"demo-"+email,label:email,email}; localStorage.setItem("bhDemoUser",JSON.stringify(USER)); afterLogin(false);
+  }
+}
+async function onLogin(user){USER={id:user.id,email:user.email,label:user.email||("Player "+(user.id||"").slice(0,4))}; await pullState(); afterLogin(true);}
+function afterLogin(live){SKIPPED=false;localStorage.removeItem("bhAuthSkip");showAuth(false);updateAcct();render();renderHUD();toast("✓ Logged in"+(live?"":" (local profile)"),true);}
+function skipAuth(){SKIPPED=true;localStorage.setItem("bhAuthSkip","1");showAuth(false);updateAcct();}
+async function signOut(){if(AUTH_LIVE&&USER){try{await sb.auth.signOut();}catch(e){}}localStorage.removeItem("bhDemoUser");USER=null;updateAcct();toast("Signed out.");showAuth(true);}
+
+/* cloud state sync (LIVE only; debounced) — mirrors all three localStorage blobs */
+function snapshot(){return {q:localStorage.getItem(Q_KEY),pl:localStorage.getItem(PL_KEY),bt:localStorage.getItem(BT_KEY)};}
+function cloudPush(){if(!AUTH_LIVE||!USER)return;clearTimeout(pushT);pushT=setTimeout(async()=>{
+  try{await sb.from("player_state").upsert({user_id:USER.id,state:snapshot(),updated_at:new Date().toISOString()});}catch(e){}
+},1200);}
+async function pullState(){if(!AUTH_LIVE||!USER)return;
+  try{const {data}=await sb.from("player_state").select("state").eq("user_id",USER.id).maybeSingle();
+    if(data&&data.state){const s=data.state;
+      if(s.q)localStorage.setItem(Q_KEY,s.q); if(s.pl)localStorage.setItem(PL_KEY,s.pl); if(s.bt)localStorage.setItem(BT_KEY,s.bt);
+      Q=load(); PL=plLoad();
+    }else{cloudPush();}
+  }catch(e){cloudPush();}
+}
+
+/* wire the welcome overlay (its HTML is already in the DOM — this script runs at end of body) */
+document.getElementById('bhQuick').onclick=quickLogin;
+document.getElementById('bhLogin').onclick=()=>emailLogin('login');
+document.getElementById('bhReg').onclick=()=>emailLogin('register');
+document.getElementById('bhSkip').onclick=(e)=>{e.preventDefault();skipAuth();};
+document.getElementById('acctBtn').onclick=()=>{if(USER){if(confirm("Sign out of "+(USER.label||"this profile")+"?"))signOut();}else showAuth(true);};
+
 /* ---- shared persistence with the existing tracker ---- */
 const BT_KEY="betTrackerV1";
 function btLoad(){try{return JSON.parse(localStorage.getItem(BT_KEY))||{}}catch(e){return{}}}
 function btSave(o){localStorage.setItem(BT_KEY,JSON.stringify(o))}
 function btRec(o,n){return o[n]||(o[n]={status:"none",deposit:"",bonus:"",wager:"",result:"",date:"",notes:"",kyc:false})}
 function syncTracker(n,patch){const o=btLoad();const r=btRec(o,n);Object.assign(r,patch);btSave(o);
-  document.getElementById('syncNote').textContent="✓ synced to betTrackerV1 ("+new Date().toLocaleTimeString()+")";}
+  document.getElementById('syncNote').textContent="✓ synced to betTrackerV1 ("+new Date().toLocaleTimeString()+")";cloudPush();}
 
 /* ---- quest state ---- */
 const Q_KEY="onboardingQuestV1";
 let Q = load();
 function load(){try{return JSON.parse(localStorage.getItem(Q_KEY))||fresh()}catch(e){return fresh()}}
 function fresh(){return{xp:0,badges:[],prog:{},done:[],seenTraps:[]}}
-function save(){localStorage.setItem(Q_KEY,JSON.stringify(Q));}
+function save(){localStorage.setItem(Q_KEY,JSON.stringify(Q));cloudPush();}
 function prog(id){return Q.prog[id]||(Q.prog[id]={steps:[],deposit:null,turnover:0,result:null})}
 
 /* ---- step factories ---- */
@@ -687,7 +783,7 @@ let PL = plLoad();
 let editId=null;
 const ST=['in-progress','cleared','busted','withdrawn'];
 function plLoad(){try{return JSON.parse(localStorage.getItem(PL_KEY))||{entries:[]}}catch(e){return{entries:[]}}}
-function plSave(){localStorage.setItem(PL_KEY,JSON.stringify(PL));}
+function plSave(){localStorage.setItem(PL_KEY,JSON.stringify(PL));cloudPush();}
 function num(v){return parseFloat(v)||0;}
 function today(){return new Date().toISOString().slice(0,10);}
 function campaignCasinos(){const l=[];TIERS.forEach(t=>{if(t.trap||t.id==='academy')return;t.missions.forEach(m=>l.push({name:m.name,n:m.n,ev:m.ev}));});return l;}
@@ -847,6 +943,7 @@ document.getElementById('paylog').addEventListener('change',e=>{
 });
 
 render();
+initAuth();
 </script>
 </body>
 </html>

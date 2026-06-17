@@ -48,6 +48,22 @@ A second screen tracks **real results over time** and charts **projected EV vs. 
 - **Online:** open the published link (GitHub Pages) in any modern browser.
 - **Offline:** download the repo and open `index.html` (and `tracker.html`) directly — they work fully offline. Your data persists in that browser only.
 
+## Accounts (optional, cross-device sync)
+
+Registration is **optional and one-click** — you can always "Play as guest". Choices:
+
+- **⚡ Quick login** — one click, no email, no verification (Supabase anonymous sign-in).
+- **Email + password** — for syncing your campaign, payout log and tracker across devices (no email verification step).
+
+Out of the box the app runs in **demo mode** (login saves a profile in *that browser only* — no server needed, works on GitHub Pages). To enable **real cross-device accounts**:
+
+1. Create a free [Supabase](https://supabase.com) project.
+2. Run [`supabase-setup.sql`](supabase-setup.sql) in the SQL Editor (creates the `player_state` table + Row-Level Security).
+3. In the dashboard: enable **Anonymous sign-ins** and disable **Confirm email**.
+4. Paste your **Project URL** + **anon key** into the `CONFIG` block near the top of `index.html`'s script.
+
+The anon key is safe to commit publicly — Row-Level Security ensures each user can only read/write their own row.
+
 ## Methodology & assumptions
 
 - FX: $1 ≈ 35 THB ≈ 10 NOK (the source list's own conversions).
