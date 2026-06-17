@@ -100,6 +100,9 @@
   .step .box{flex-shrink:0;width:26px;height:26px;border-radius:8px;border:2px solid var(--border);display:grid;place-items:center;cursor:pointer;font-size:15px;transition:.15s;background:var(--panel2)}
   .step.done .box{background:var(--good);border-color:var(--good);color:#04140d}
   .step.locked{opacity:.45}
+  .step.done{padding:7px 0;opacity:.6}
+  .step.done .body > *:not(.lab){display:none}
+  .step.done .lab{font-weight:500;font-size:12.5px}
   .step .body{flex:1}
   .step .lab{font-size:13.5px;font-weight:600}
   .step .det{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
@@ -758,29 +761,58 @@ document.getElementById('howBtn').addEventListener('click',()=>openMission("acad
 document.getElementById('boldBtn').addEventListener('click',boldPlay);
 function boldPlay(){
   const modal=document.getElementById('modal');
-  modal.innerHTML=`<div class="modal-h"><div><h3>📊 No max bet? The bold-play option</h3>
-    <div style="font-size:12px;color:var(--muted);margin-top:3px">Monte-Carlo · $200 deposit + $200 bonus · 4% margin · 120k sims</div></div><span class="x" data-close>×</span></div>
+  modal.innerHTML=`<div class="modal-h"><div><h3>📊 Bold-play calculator</h3>
+    <div style="font-size:12px;color:var(--muted);margin-top:3px">No max bet? Simulate big high-odds bets vs grinding</div></div><span class="x" data-close>×</span></div>
     <div class="modal-b">
-      <div class="why">If a bonus has <b>no max-bet cap</b>, you can clear the turnover with a few <b>big bets at higher odds (2.0–10.0)</b>, staking your whole or half balance, instead of grinding hundreds of small bets. The key truth from the sim: <b>this barely changes EV — it is a VARIANCE choice.</b> Bold play swaps a near-certain small profit for a small chance of a big score (and a big chance of losing your deposit).</div>
-      <div class="trap-math">5× turnover (low):
-  GRIND $20 @2.0      EV +$159 · bust  1% · walk-ahead 84%
-  half-stack @3.0     EV +$163 · bust 43% · walk-ahead 31%
-  WHOLE-stack @2.0    EV +$168 · bust 77% · walk-ahead 23%
-  WHOLE-stack @10     EV +$166 · bust 99% · ~1% shot at huge
-
-12× turnover (high):
-  GRIND $20 @2.0      EV +$107 · bust 14% · walk-ahead 65%
-  half-stack @5.0     EV +$158 · bust 82% · walk-ahead 15%
-  WHOLE-stack @2.0    EV +$155 · bust 89% · walk-ahead 11%</div>
-      <div class="stoprule">🧭 <b>How to choose:</b><br>
-        • <b>Low turnover (≤5×):</b> just GRIND small at min odds — same EV, ~1% bust, you almost always walk away ahead.<br>
-        • <b>High turnover (10×+) with no max bet:</b> bold play earns its keep — a few big high-odds bets either bust fast (you only lose the deposit; the bonus was free) or hit a multiplier and clear in a couple of bets, instead of slowly bleeding margin over a huge turnover.<br>
-        • <b>Whole-stack = lottery</b> (usually lose the deposit). <b>Half-stack @3.0</b> is the balanced middle.<br>
-        • You can't beat ≈(bonus − margin) on average — odds &amp; stake only move the variance.</div>
-      <div style="font-size:11px;color:var(--muted)">'walk-ahead' = chance you finish above your $200 deposit. If a max bet exists (≈$5 on the EU books) bold play isn't possible — grind, which is fine.</div>
-      <button class="btn primary full" data-close>Got it</button>
+      <div class="why">With <b>no max-bet cap</b> you can clear turnover in a few big bets instead of grinding. The truth: this is a <b>VARIANCE</b> choice, not an EV one. Punch in the offer and run the sim (sticky bonus model).</div>
+      <div class="pl-form" style="grid-template-columns:repeat(auto-fit,minmax(94px,1fr))">
+        <div><label>Deposit $</label><input class="field" type="number" id="cDep" value="200"></div>
+        <div><label>Bonus %</label><input class="field" type="number" id="cMatch" value="100"></div>
+        <div><label>Turnover ×bonus</label><input class="field" type="number" id="cTurn" value="5"></div>
+        <div><label>Margin %</label><input class="field" type="number" id="cMargin" value="4"></div>
+        <div><label>Odds</label><input class="field" type="number" id="cOdds" value="3" step="0.5"></div>
+        <div><label>Stake</label><select class="field" id="cStake"><option value="grind">Grind (small)</option><option value="0.5" selected>Half stack</option><option value="1">Whole stack</option></select></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap">
+        <button class="btn good" id="calcRun">▶ Run 25,000 sims</button>
+        <span id="calcMeta" style="font-size:11px;color:var(--muted)"></span>
+      </div>
+      <div id="calcOut" style="margin-top:12px"></div>
+      <div class="stoprule" style="margin-top:14px">🧭 <b>Rules of thumb:</b> ≤5× turnover → <b>grind</b> (same EV, ~1% bust, usually walk away ahead). 10×+ with no max bet → <b>bold play</b> earns its keep. <b>Whole-stack = lottery.</b> You can't beat ≈(bonus − margin) on average — odds &amp; stake only move the variance.</div>
     </div>`;
+  const $$=id=>document.getElementById(id);
+  function runCalc(){
+    const D=+$$('cDep').value||0, B=D*((+$$('cMatch').value||0)/100);
+    const T=B*(+$$('cTurn').value||0), m=(+$$('cMargin').value||0)/100, d=Math.max(1.01,+$$('cOdds').value||2);
+    const mode=$$('cStake').value, N=25000, MIN=1, p=(1-m)/d, flat=Math.max(2,Math.round((D+B)*0.02));
+    let sum=0,bust=0,walk=0,big=0; const fin=new Array(N);
+    for(let i=0;i<N;i++){
+      let bal=D+B, turn=0, bets=0;
+      while(turn<T && bal>=MIN && bets<8000){
+        let s = mode==='grind' ? Math.min(flat,bal) : (+mode)*bal;
+        s=Math.min(s,bal); if(s<MIN) s=bal;
+        turn+=s; bets++;
+        if(Math.random()<p) bal+=s*(d-1); else bal-=s;
+      }
+      const fv = turn>=T ? bal : 0; fin[i]=fv; sum+=fv;
+      if(fv<1e-9) bust++; if(fv>D) walk++; if(fv>2*D) big++;
+    }
+    fin.sort((a,b)=>a-b);
+    const ev=sum/N-D, med=fin[N>>1]-D, p95=fin[Math.floor(N*0.95)]-D;
+    const sign=x=>(x>=0?'+$':'−$')+Math.abs(Math.round(x));
+    $$('calcMeta').textContent=`bonus $${Math.round(B)} · turnover $${Math.round(T)} · win-prob ${(p*100).toFixed(1)}%/bet`;
+    $$('calcOut').innerHTML=`<div class="pl-stats">
+      <div class="pl-card"><div class="k">net EV</div><div class="v ${ev>=0?'pos':'neg'}">${sign(ev)}</div></div>
+      <div class="pl-card"><div class="k">median</div><div class="v ${med>=0?'pos':'neg'}">${sign(med)}</div></div>
+      <div class="pl-card"><div class="k">P(bust)</div><div class="v ${bust>0.5?'neg':''}">${Math.round(bust*100)}%</div></div>
+      <div class="pl-card"><div class="k">walk-ahead</div><div class="v ${walk>=0.5?'pos':''}">${Math.round(walk*100)}%</div></div>
+      <div class="pl-card"><div class="k">P(&gt;2×)</div><div class="v">${Math.round(big*100)}%</div></div>
+      <div class="pl-card"><div class="k">95th pct</div><div class="v gold">${sign(p95)}</div></div>
+    </div>`;
+  }
+  $$('calcRun').onclick=runCalc;
   document.getElementById('ovl').classList.add('on');
+  runCalc();
 }
 
 /* ---- toast ---- */
