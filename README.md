@@ -12,8 +12,9 @@ Two single-file tools, no build step, no server, no dependencies. All your data 
 
 | File | What it is |
 |------|------------|
-| `index.html` | **Bonus Hunter (Casino)** — the gamified casino campaign + payout log |
-| `sports.html` | **Bonus Hunter (Sports)** — the sports-betting campaign (free bets, low-turnover clears, acca traps) |
+| `index.html` | Landing — redirects to the **Sports** campaign (the default entry point) |
+| `sports.html` | **Bonus Hunter (Sports)** — sports-betting campaign (default) |
+| `casino.html` | **Bonus Hunter (Casino)** — casino campaign |
 | `tracker.html` | **Bonus & Registration Tracker** — log registrations, KYC, deposits, wagering and results per platform |
 | `betting-platforms.json` | The raw platform list (85 records: bonus, wagering, licensing, type) |
 | `betting-ev-normalized.json` | Parsed/normalised EV fields (bonusPct, wagerX, capUSD, depositSafe, clearEV, verdict) |

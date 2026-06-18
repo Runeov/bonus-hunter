@@ -134,6 +134,11 @@
   .seg{display:flex;background:var(--panel2);border:1px solid var(--border);border-radius:9px;overflow:hidden}
   .seg button{background:transparent;border:0;padding:8px 14px;font-size:13px;color:var(--muted);cursor:pointer;font-family:inherit}
   .seg button.active{background:var(--accent);color:#fff}
+  .seg a{background:transparent;padding:8px 14px;font-size:13px;color:var(--muted);text-decoration:none;display:flex;align-items:center}
+  .seg a.active{background:var(--accent);color:#fff}
+  .modeseg{border-color:var(--accent);box-shadow:0 0 0 1px #5b8cff44}
+  .modeseg a{font-weight:700}
+  .modeseg a:not(.active):hover{background:#222c44;color:var(--text)}
   .field{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit}
   .field:focus{border-color:var(--accent)}
   .pl-wrap{display:flex;flex-direction:column;gap:16px}
@@ -172,12 +177,12 @@
   <p class="sub">Turn a <b>$200</b> bankroll into the best realistic return by hunting <b>only +EV sportsbook bonuses</b> in the right order.
   Sports clears are cheap (low turnover on low-margin books) — the traps are <b>huge turnover</b> and <b>accumulator requirements</b>. Every mission enforces the stop-rules. Account &amp; tracker are shared with the casino campaign.</p>
   <div class="topbtns">
+    <div class="seg modeseg" id="modeSeg"><a href="casino.html">🎰 Casino</a><a href="sports.html" class="active">🏟️ Sports</a></div>
     <div class="seg" id="viewSeg">
       <button data-view="campaign" class="active">🎯 Campaign</button>
       <button data-view="paylog">📒 Payout Log</button>
     </div>
     <button class="btn sm" id="acctBtn">👤 Account</button>
-    <a class="btn sm" href="index.html" style="text-decoration:none">🎰 Casino →</a>
     <button class="btn sm" id="boldBtn">📊 Bold play</button>
     <button class="btn sm" id="howBtn">❓ How EV works</button>
     <button class="btn sm danger" id="resetBtn">↺ Reset campaign</button>
@@ -1089,5 +1094,453 @@ render();
 initAuth();
 renderPremium();
 </script>
+<!-- ===== i18n EN/TH (injected) ===== -->
+<style>
+#langSwitch{position:fixed;right:18px;bottom:18px;z-index:99999;display:flex;
+  background:rgba(18,23,35,.95);border:1px solid #2a3450;border-radius:999px;overflow:hidden;
+  box-shadow:0 10px 30px rgba(0,0,0,.5);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  font-family:"Segoe UI",Roboto,system-ui,Arial,sans-serif}
+#langSwitch button{-webkit-appearance:none;appearance:none;background:transparent;border:0;margin:0;
+  cursor:pointer;color:#9aa6c0;font-size:13.5px;font-weight:700;line-height:1;padding:10px 16px;
+  display:flex;align-items:center;gap:6px;transition:.15s}
+#langSwitch button:hover{color:#fff}
+#langSwitch button.active{background:linear-gradient(180deg,#5b8cff,#3f6fe0);color:#fff}
+#langSwitch .gl{font-size:15px}
+@media(max-width:540px){#langSwitch{right:10px;bottom:10px}#langSwitch button{padding:9px 13px;font-size:12.5px}}
+</style>
+<script>
+(function(){
+  var LK='siteLang', lang=localStorage.getItem(LK)||'en';
+  function buildSwitch(){
+    if(document.getElementById('langSwitch'))return;
+    var d=document.createElement('div');d.id='langSwitch';
+    d.innerHTML='<button type="button" data-l="en"><span class="gl">🌐</span>EN</button>'+
+                '<button type="button" data-l="th">ไทย</button>';
+    document.body.appendChild(d);
+    var bs=d.getElementsByTagName('button');
+    for(var i=0;i<bs.length;i++){(function(b){
+      if(b.getAttribute('data-l')===lang)b.className='active';
+      b.onclick=function(){var nl=b.getAttribute('data-l');if(nl===lang)return;
+        localStorage.setItem(LK,nl);location.reload();};
+    })(bs[i]);}
+  }
+  function ready(fn){if(document.body)fn();else document.addEventListener('DOMContentLoaded',fn);}
+  if(lang!=='th'){ready(buildSwitch);return;}
+  document.documentElement.lang='th';
+
+  function nrm(s){return s.replace(/\s+/g,' ').trim();}
+
+  /* === HELPER MAPS (used by PATTERNS) === */
+  var RANKS_TH={Rookie:'มือใหม่',Scout:'นักสำรวจ',Hunter:'นักล่า',Sharp:'มือโปร',Strategist:'นักวางแผน','Bonus Master':'ปรมาจารย์โบนัส'};
+  var ST_TH={'in-progress':'กำลังดำเนินการ','cleared':'เคลียร์แล้ว','busted':'เงินหมด','withdrawn':'ถอนแล้ว'};
+
+  /* === EXACT-MATCH PAIRS: [English, Thai] (Thai may contain HTML). Numbers literal. === */
+  var PAIRS=[
+    /* ---- title / header ---- */
+    [`Bonus Hunter — Sports Betting Campaign`, `Bonus Hunter — แคมเปญเดิมพันกีฬา`],
+    [`Sports Betting Campaign`, `แคมเปญเดิมพันกีฬา`],
+    [`Turn a $200 bankroll into the best realistic return by hunting only +EV sportsbook bonuses in the right order. Sports clears are cheap (low turnover on low-margin books) — the traps are huge turnover and accumulator requirements. Every mission enforces the stop-rules. Account & tracker are shared with the casino campaign.`, `เปลี่ยนเงินทุน <b>$200</b> ให้ได้ผลตอบแทนที่ดีที่สุดตามความเป็นจริง ด้วยการล่า <b>เฉพาะโบนัสกีฬาที่ +EV</b> ตามลำดับที่ถูกต้อง การเคลียร์โบนัสกีฬานั้นถูก (เทิร์นโอเวอร์ต่ำบนเว็บที่มาร์จิ้นต่ำ) — กับดักคือ <b>เทิร์นโอเวอร์มหาศาล</b> และ <b>เงื่อนไขบิลสเต็ป</b> ทุกภารกิจบังคับใช้กฎหยุดเล่น บัญชีและแทร็กเกอร์ใช้ร่วมกับแคมเปญคาสิโน`],
+
+    /* ---- top buttons / view seg ---- */
+    [`🎯 Campaign`, `🎯 แคมเปญ`],
+    [`📒 Payout Log`, `📒 บันทึกเงินรางวัล`],
+    [`👤 Account`, `👤 บัญชี`],
+    [`🎰 Casino →`, `🎰 คาสิโน →`],
+    [`📊 Bold play`, `📊 เล่นแบบกล้าได้กล้าเสีย`],
+    [`❓ How EV works`, `❓ EV ทำงานอย่างไร`],
+    [`↺ Reset campaign`, `↺ รีเซ็ตแคมเปญ`],
+    [`👤 Guest`, `👤 ผู้เยี่ยมชม`],
+    [`👤 Log in`, `👤 เข้าสู่ระบบ`],
+
+    /* ---- HUD ---- */
+    [`Bankroll (actual)`, `เงินทุน (จริง)`],
+    [`Projected (EV)`, `คาดการณ์ (EV)`],
+    [`EV captured`, `EV ที่เก็บได้`],
+
+    /* ---- auth overlay ---- */
+    [`👋 Welcome, Bonus Hunter`, `👋 ยินดีต้อนรับ, Bonus Hunter`],
+    [`Save your campaign, payout log & XP`, `บันทึกแคมเปญ บันทึกเงินรางวัล และ XP ของคุณ`],
+    [`⚡ Quick login — one click, no email`, `⚡ เข้าสู่ระบบด่วน — คลิกเดียว ไม่ต้องใช้อีเมล`],
+    [`Use an email instead (syncs across devices)`, `ใช้อีเมลแทน (ซิงค์ข้ามอุปกรณ์)`],
+    [`email`, `อีเมล`],
+    [`password`, `รหัสผ่าน`],
+    [`Log in`, `เข้าสู่ระบบ`],
+    [`Create account`, `สร้างบัญชี`],
+    [`Play as guest →`, `เล่นแบบผู้เยี่ยมชม →`],
+    [`Connected to Supabase — your progress syncs across devices.`, `เชื่อมต่อกับ Supabase แล้ว — ความคืบหน้าของคุณซิงค์ข้ามอุปกรณ์`],
+    [`Demo mode: login saves a profile in THIS browser only. Add Supabase keys in the file for real cross-device accounts.`, `โหมดเดโม: การเข้าสู่ระบบจะบันทึกโปรไฟล์ในเบราว์เซอร์นี้เท่านั้น เพิ่มคีย์ Supabase ในไฟล์เพื่อใช้บัญชีข้ามอุปกรณ์จริง`],
+    [`Enter email and password.`, `กรอกอีเมลและรหัสผ่าน`],
+    [`Account created — now click Log in.`, `สร้างบัญชีแล้ว — ตอนนี้คลิกเข้าสู่ระบบ`],
+    [`Auth failed.`, `เข้าสู่ระบบล้มเหลว`],
+    [`Login failed`, `เข้าสู่ระบบล้มเหลว`],
+    [`✓ Logged in`, `✓ เข้าสู่ระบบแล้ว`],
+    [`✓ Logged in (local profile)`, `✓ เข้าสู่ระบบแล้ว (โปรไฟล์ในเครื่อง)`],
+    [`Signed out.`, `ออกจากระบบแล้ว`],
+
+    /* ---- tier names / tags / descriptions ---- */
+    [`🎓 The Academy`, `🎓 สถาบันฝึกฝน`],
+    [`START HERE`, `เริ่มที่นี่`],
+    [`One 60-second lesson + a quiz on how sports-bonus EV works. Finish it to unlock the campaign.`, `บทเรียน 60 วินาที + แบบทดสอบเกี่ยวกับวิธีคำนวณ EV ของโบนัสกีฬา เรียนจบเพื่อปลดล็อกแคมเปญ`],
+
+    [`Tier 1 — Pure Value`, `เทียร์ 1 — คุณค่าล้วน ๆ`],
+    [`Free bets · low/no turnover · safest`, `ฟรีเบ็ต · เทิร์นโอเวอร์ต่ำ/ไม่มี · ปลอดภัยที่สุด`],
+    [`Free bets, risk-free bets, rakeback and 1× rollover offers — little or nothing to clear, so the value lands almost regardless of variance. Harvest these first.`, `ฟรีเบ็ต เดิมพันไร้ความเสี่ยง เรคแบ็ก และโปรเทิร์น 1× — แทบไม่มีอะไรต้องเคลียร์ คุณค่าจึงเข้ามือเกือบแน่นอนไม่ว่าผลจะแกว่งแค่ไหน เก็บพวกนี้ก่อน`],
+
+    [`Tier 2 — Low-Turnover Clears`, `เทียร์ 2 — เคลียร์เทิร์นโอเวอร์ต่ำ`],
+    [`5× singles · the workhorse +EV`, `5× เดี่ยว · ตัวทำเงิน +EV หลัก`],
+    [`100% matches with only ~5× turnover, clearable with SINGLES at min odds. On low-margin books this is strongly +EV. Deposit is at risk to variance, so do these after Tier 1, one at a time.`, `โบนัสจับคู่ 100% เทิร์นโอเวอร์เพียง ~5× เคลียร์ได้ด้วย <b>บิลเดี่ยว</b> ที่ราคาต่อรองขั้นต่ำ บนเว็บมาร์จิ้นต่ำนี่คือ +EV อย่างชัดเจน เงินฝากมีความเสี่ยงต่อความแปรปรวน ดังนั้นทำหลังเทียร์ 1 ทีละอย่าง`],
+
+    [`Tier 3 — Higher Turnover / Accumulator`, `เทียร์ 3 — เทิร์นโอเวอร์สูง / บิลสเต็ป`],
+    [`12×, or accas required · more variance`, `12× หรือบังคับสเต็ป · ความแปรปรวนสูงขึ้น`],
+    [`Still +EV on paper, but either higher turnover (10–12×) or an ACCUMULATOR requirement — and every acca leg multiplies the margin against you, with brutal variance. Optional; size down and expect swings.`, `บนกระดาษยังเป็น +EV แต่ไม่เทิร์นโอเวอร์สูงขึ้น (10–12×) ก็มี <b>เงื่อนไขบิลสเต็ป</b> — และทุกคู่ในสเต็ปจะทบมาร์จิ้นที่เสียเปรียบคุณ พร้อมความแปรปรวนที่โหดร้าย เป็นทางเลือก ลดขนาดเดิมพันและเตรียมรับความแกว่ง`],
+
+    [`⛔ The Trap Zone`, `⛔ โซนกับดัก`],
+    [`LOCKED · −EV`, `ล็อก · −EV`],
+    [`The biggest sportsbook headlines — locked, because the turnover (or the accumulator requirement) eats the whole bonus. Click any to see the math. Resisting them earns a badge.`, `โปรพาดหัวที่ใหญ่ที่สุดของเว็บกีฬา — ถูกล็อก เพราะเทิร์นโอเวอร์ (หรือเงื่อนไขบิลสเต็ป) กินโบนัสทั้งก้อน คลิกเพื่อดูการคำนวณ การต้านทานพวกมันได้รับเหรียญตรา`],
+
+    /* ---- academy mission card ---- */
+    [`The Sports Rule`, `กฎของกีฬา`],
+    [`Turnover × margin, min odds, and the acca trap.`, `เทิร์นโอเวอร์ × มาร์จิ้น ราคาต่อรองขั้นต่ำ และกับดักสเต็ป`],
+    [`Tutorial`, `บทสอน`],
+
+    /* ---- mission chips ---- */
+    [`1× rollover`, `เทิร์น 1×`],
+    [`Reputable`, `น่าเชื่อถือ`],
+    [`Free bet`, `ฟรีเบ็ต`],
+    [`Free bets`, `ฟรีเบ็ต`],
+    [`1× net-win`, `เทิร์น 1× กำไรสุทธิ`],
+    [`Risk-free bet`, `เดิมพันไร้ความเสี่ยง`],
+    [`No rollover`, `ไม่มีเทิร์น`],
+    [`Rakeback`, `เรคแบ็ก`],
+    [`5× D+B`, `5× เงินฝาก+โบนัส`],
+    [`Singles 2.00`, `เดี่ยว 2.00`],
+    [`5× bonus`, `5× โบนัส`],
+    [`Singles`, `เดี่ยว`],
+    [`5× turnover`, `เทิร์น 5×`],
+    [`Lowest margin`, `มาร์จิ้นต่ำสุด`],
+    [`12× turnover`, `เทิร์น 12×`],
+    [`ACCA required`, `บังคับสเต็ป`],
+    [`12× D+B`, `12× เงินฝาก+โบนัส`],
+    [`200% bait`, `เหยื่อ 200%`],
+    [`10× D+B`, `10× เงินฝาก+โบนัส`],
+    [`ACCA`, `สเต็ป`],
+    [`488% bait`, `เหยื่อ 488%`],
+
+    /* ---- mission subs ---- */
+    [`100% match, ~one round of betting to clear.`, `จับคู่ 100% เคลียร์ด้วยการเดิมพันราว ๆ หนึ่งรอบ`],
+    [`Free bet ≈ 70% of face when used well.`, `ฟรีเบ็ต ≈ 70% ของมูลค่าหน้าบัตรเมื่อใช้ดี ๆ`],
+    [`Free bets; only net winnings roll over once.`, `ฟรีเบ็ต; เฉพาะกำไรสุทธิที่ต้องเทิร์นหนึ่งครั้ง`],
+    [`Lose the first bet → stake refunded as a bonus.`, `แพ้เดิมพันแรก → คืนเงินเดิมพันเป็นโบนัส`],
+    [`A standing rebate on margin paid — no clearing.`, `เงินคืนถาวรจากมาร์จิ้นที่จ่ายไป — ไม่ต้องเคลียร์`],
+    [`Clear with singles at 2.00 — plus a bet-builder rebate.`, `เคลียร์ด้วยบิลเดี่ยวที่ 2.00 — พร้อมเงินคืน bet-builder`],
+    [`Straightforward 5× singles clear.`, `เคลียร์เดี่ยว 5× ตรงไปตรงมา`],
+    [`SBOBET = lowest-margin book → cheapest turnover (small cap).`, `SBOBET = เว็บมาร์จิ้นต่ำสุด → เทิร์นโอเวอร์ถูกที่สุด (เพดานน้อย)`],
+    [`12× singles — more betting, more variance.`, `เดี่ยว 12× — เดิมพันมากขึ้น แปรปรวนมากขึ้น`],
+    [`Low turnover, but accumulators are forced.`, `เทิร์นโอเวอร์ต่ำ แต่บังคับเล่นสเต็ป`],
+    [`Bigger match %, but 12× on Dep+Bonus.`, `เปอร์เซ็นต์จับคู่สูงขึ้น แต่ 12× บนเงินฝาก+โบนัส`],
+    [`Great book, brutal welcome turnover.`, `เว็บดี แต่เทิร์นโอเวอร์โบนัสต้อนรับโหดร้าย`],
+    [`Acca requirement compounds the margin.`, `เงื่อนไขสเต็ปทบมาร์จิ้นทวีคูณ`],
+    [`Huge headline %, still negative after turnover.`, `เปอร์เซ็นต์พาดหัวมหาศาล แต่ยังติดลบหลังเทิร์นโอเวอร์`],
+    [`30× turnover — quietly −EV.`, `เทิร์น 30× — เป็น −EV แบบเงียบ ๆ`],
+
+    /* ---- mission "why" ---- */
+    [`A 100% match with only 1× rollover is nearly free money: bet your deposit+bonus through once at min odds, expected cost is a few %, you keep almost all the bonus. Isle of Man licensed = trustworthy payouts.`, `โบนัสจับคู่ 100% ที่เทิร์นเพียง 1× แทบจะเป็นเงินฟรี: เดิมพันเงินฝาก+โบนัสครบหนึ่งรอบที่ราคาต่อรองขั้นต่ำ ต้นทุนคาดการณ์ไม่กี่ % คุณเก็บโบนัสไว้เกือบทั้งหมด ใบอนุญาต Isle of Man = จ่ายเงินน่าเชื่อถือ`],
+    [`A stake-not-returned free bet is worth ~70% of its face if used on a single at higher odds. Top-tier MGA licensing = the safest payout in the list.`, `ฟรีเบ็ตแบบไม่คืนเงินเดิมพันมีค่า ~70% ของมูลค่าหน้าบัตรหากใช้กับบิลเดี่ยวที่ราคาต่อรองสูง ใบอนุญาต MGA ระดับท็อป = การจ่ายเงินที่ปลอดภัยที่สุดในรายการ`],
+    [`Free bets where only the NET WINNINGS need 1× rollover at decent odds — very low clearing cost, so most of the free-bet value converts.`, `ฟรีเบ็ตที่เฉพาะ <b>กำไรสุทธิ</b> ต้องเทิร์น 1× ที่ราคาต่อรองพอใช้ได้ — ต้นทุนการเคลียร์ต่ำมาก มูลค่าฟรีเบ็ตส่วนใหญ่จึงแปลงเป็นเงินจริง`],
+    [`A risk-free / no-risk bet returns ~25–30% of its face in EV. The full deposit MATCH is a separate, higher-turnover acca offer — treat that as Tier 3, not this.`, `เดิมพันไร้ความเสี่ยงให้ผลตอบแทน ~25–30% ของมูลค่าหน้าบัตรในรูป EV ส่วนโบนัส <b>จับคู่เงินฝากเต็มจำนวน</b> เป็นโปรสเต็ปคนละตัวที่เทิร์นสูงกว่า — ให้มองว่าเป็นเทียร์ 3 ไม่ใช่อันนี้`],
+    [`10% rakeback with no rollover directly returns part of the margin you pay — pure value, nothing to clear. Note: Stake's headline SPORTS welcome (200% / 40×) is a trap — see the Trap Zone.`, `เรคแบ็ก 10% ที่ไม่มีเทิร์นคืนส่วนหนึ่งของมาร์จิ้นที่คุณจ่ายตรง ๆ — คุณค่าล้วน ไม่ต้องเคลียร์ หมายเหตุ: โปรกีฬาต้อนรับพาดหัวของ Stake (200% / 40×) เป็นกับดัก — ดูในโซนกับดัก`],
+    [`5× on Dep+Bonus, clearable with SINGLES at 2.00 (no acca forced). At ~4% margin the clear costs ~$80 vs a $200 bonus ⇒ ~+$120. The 50% bet-builder rebate is extra. Same engine as Fezbet / Sportaza / Wazamba / Spinanga.`, `5× บนเงินฝาก+โบนัส เคลียร์ได้ด้วย <b>บิลเดี่ยว</b> ที่ 2.00 (ไม่บังคับสเต็ป) ที่มาร์จิ้น ~4% การเคลียร์มีต้นทุน ~$80 เทียบกับโบนัส $200 ⇒ ~+$120 เงินคืน bet-builder 50% เป็นของแถม ใช้ระบบเดียวกับ Fezbet / Sportaza / Wazamba / Spinanga`],
+    [`5× on the bonus, clearable with singles ⇒ clean, low-turnover +EV (~+$120 on a $150 bonus). Multi-provider book with reasonable margins.`, `5× บนโบนัส เคลียร์ได้ด้วยบิลเดี่ยว ⇒ +EV ที่สะอาด เทิร์นโอเวอร์ต่ำ (~+$120 บนโบนัส $150) เว็บหลายค่ายที่มาร์จิ้นสมเหตุสมผล`],
+    [`SBOBET runs the tightest margins in the market (~2%), so 5× turnover costs almost nothing relative to the bonus. Isle of Man licensed. Best value-PER-turnover here — the catch is the small cap (~$29).`, `SBOBET มีมาร์จิ้นแคบที่สุดในตลาด (~2%) ดังนั้นเทิร์นโอเวอร์ 5× แทบไม่มีต้นทุนเมื่อเทียบกับโบนัส ใบอนุญาต Isle of Man คุ้มค่าต่อเทิร์นโอเวอร์ที่สุดในนี้ — ข้อเสียคือเพดานน้อย (~$29)`],
+    [`12× turnover singles at min odds. At ~4% margin the clear costs ~$69 vs a $143 bonus ⇒ ~+$74 expected — but 12× is a lot of betting, so variance (and bust risk) is real.`, `เทิร์นโอเวอร์ 12× ด้วยบิลเดี่ยวที่ราคาต่อรองขั้นต่ำ ที่มาร์จิ้น ~4% การเคลียร์มีต้นทุน ~$69 เทียบกับโบนัส $143 ⇒ คาดว่า ~+$74 — แต่ 12× คือการเดิมพันเยอะ ความแปรปรวน (และความเสี่ยงเงินหมด) จึงมีจริง`],
+    [`Only 5× turnover, BUT it must be 3+ leg accumulators — each leg multiplies the margin (≈11% effective hold), so the real cost is far higher than 5× singles, and acca variance is severe. +EV on average, swingy in practice.`, `เทิร์นโอเวอร์เพียง 5× แต่ <b>ต้องเป็นสเต็ป 3 คู่ขึ้นไป</b> — แต่ละคู่ทบมาร์จิ้น (≈11% hold จริง) ต้นทุนที่แท้จริงจึงสูงกว่าเดี่ยว 5× มาก และความแปรปรวนของสเต็ปก็รุนแรง โดยเฉลี่ยเป็น +EV แต่ในทางปฏิบัติแกว่งแรง`],
+    [`130% is a larger bonus, but 12× applies to Deposit+Bonus, so turnover (~$3,000) is high. Still modestly +EV on low-margin singles; the variance over that much betting is the catch.`, `130% เป็นโบนัสที่ใหญ่กว่า แต่ 12× คิดบนเงินฝาก+โบนัส เทิร์นโอเวอร์ (~$3,000) จึงสูง ยังเป็น +EV เล็กน้อยบนบิลเดี่ยวมาร์จิ้นต่ำ; ข้อเสียคือความแปรปรวนจากการเดิมพันมากขนาดนั้น`],
+
+    /* ---- mission "stop" ---- */
+    [`Clear with singles at min odds, then withdraw. Don't bet past 1× — the edge is gone.`, `<b>เคลียร์ด้วยบิลเดี่ยว</b> ที่ราคาต่อรองขั้นต่ำ แล้วถอนเงิน อย่าเดิมพันเกิน 1× — ความได้เปรียบหมดแล้ว`],
+    [`Use the free bet on ONE pick at ~3.0–5.0 odds — never a short favourite, never split. Then bank it.`, `ใช้ฟรีเบ็ตกับ <b>การเลือกเพียงคู่เดียว</b> ที่ราคาต่อรอง ~3.0–5.0 — อย่าเลือกตัวเต็งราคาต่ำ อย่าแบ่งเดิมพัน แล้วเก็บเงิน`],
+    [`Use each free bet on a single in the 1.75–5.00 band; clear the 1× on winnings; withdraw within the 48h windows.`, `ใช้ฟรีเบ็ตแต่ละใบกับบิลเดี่ยวในช่วงราคา 1.75–5.00; เคลียร์เทิร์น 1× บนกำไร; ถอนภายในกรอบเวลา 48 ชม.`],
+    [`Place the no-risk bet at moderate odds; if refunded, re-extract the refund at higher odds. Ignore the big match unless you've read its acca terms.`, `วางเดิมพันไร้ความเสี่ยงที่ราคาต่อรองปานกลาง; หากได้คืน ให้รีดมูลค่าเงินคืนที่ราคาต่อรองสูงขึ้น เพิกเฉยต่อโบนัสจับคู่ก้อนใหญ่จนกว่าจะอ่านเงื่อนไขสเต็ปแล้ว`],
+    [`Collect rakeback on schedule. Don't raise stakes to 'earn' more rebate.`, `รับเรคแบ็กตามรอบ อย่าเพิ่มเงินเดิมพันเพื่อ 'หา' เงินคืนเพิ่ม`],
+    [`Singles at 2.00 only — do NOT take the multi route. Stop-win at 100%. If the deposit busts first, walk; don't redeposit.`, `บิลเดี่ยวที่ 2.00 เท่านั้น — <b>อย่า</b> เลือกทางสเต็ป หยุดเมื่อถึง 100% หากเงินฝากหมดก่อน ให้เดินจากไป; อย่าฝากซ้ำ`],
+    [`Singles at min odds, stop-win at 100% turnover, withdraw. No accumulators.`, `บิลเดี่ยวที่ราคาต่อรองขั้นต่ำ หยุดเมื่อเทิร์นโอเวอร์ถึง 100% แล้วถอน ห้ามเล่นสเต็ป`],
+    [`Clear with low-margin singles (Asian handicaps) at min odds. Stop-win at 100% turnover, withdraw.`, `เคลียร์ด้วยบิลเดี่ยวมาร์จิ้นต่ำ (อาเซียนแฮนดิแคป) ที่ราคาต่อรองขั้นต่ำ หยุดเมื่อเทิร์นโอเวอร์ถึง 100% แล้วถอน`],
+    [`Singles at ≥1.50, lowest-margin markets. Stop-win at 100%. Walk if the balance busts before clearing.`, `บิลเดี่ยวที่ ≥1.50 ตลาดที่มาร์จิ้นต่ำสุด หยุดเมื่อถึง 100% เดินจากไปหากยอดเงินหมดก่อนเคลียร์เสร็จ`],
+    [`Keep accas to the minimum 3 legs at ~1.40 to limit compounded margin. Treat as a variance play, not a steady clear.`, `จำกัดสเต็ปไว้ที่ขั้นต่ำ 3 คู่ที่ ~1.40 เพื่อลดมาร์จิ้นที่ทบกัน มองว่าเป็นการเล่นเสี่ยงแปรปรวน ไม่ใช่การเคลียร์ที่มั่นคง`],
+    [`Singles ≥1.50 only. Stop-win at 100% turnover. Don't chase if the balance busts.`, `บิลเดี่ยว ≥1.50 เท่านั้น หยุดเมื่อเทิร์นโอเวอร์ถึง 100% อย่าไล่ตามหากยอดเงินหมด`],
+
+    /* ---- step labels ---- */
+    [`Confirm the terms on the official site`, `ยืนยันเงื่อนไขบนเว็บไซต์ทางการ`],
+    [`Register your account`, `สมัครบัญชีของคุณ`],
+    [`Verify (KYC) if required`, `ยืนยันตัวตน (KYC) หากจำเป็น`],
+    [`Deposit the recommended amount`, `ฝากเงินตามจำนวนที่แนะนำ`],
+    [`Opt in / claim the bonus`, `เลือกรับ / เคลมโบนัส`],
+    [`Place the qualifying bet at minimum odds`, `วางเดิมพันที่เข้าเงื่อนไขที่ราคาต่อรองขั้นต่ำ`],
+    [`Use the free bet on ONE pick at higher odds`, `ใช้ฟรีเบ็ตกับการเลือกเพียงคู่เดียวที่ราคาต่อรองสูงขึ้น`],
+    [`STOP-WIN gate — withdraw when turnover hits 100%`, `ด่านหยุดเมื่อชนะ — ถอนเมื่อเทิร์นโอเวอร์ถึง 100%`],
+    [`Withdraw to your wallet`, `ถอนเข้ากระเป๋าเงินของคุณ`],
+    [`Log your result`, `บันทึกผลของคุณ`],
+    [`Activate the free bet / cashback / rakeback`, `เปิดใช้ฟรีเบ็ต / แคชแบ็ก / เรคแบ็ก`],
+    [`Bet only within your set budget`, `เดิมพันภายในงบที่ตั้งไว้เท่านั้น`],
+    [`Collect the value & log result`, `เก็บมูลค่าและบันทึกผล`],
+
+    /* ---- step details ---- */
+    [`Check the turnover multiple, the minimum odds (e.g. ≥ 1.50 — lower-odds bets won't count), whether accumulators are required, excluded markets, max stake while a bonus is active, and the expiry. Terms change — never trust the headline.`, `ตรวจสอบตัวคูณเทิร์นโอเวอร์ <b>ราคาต่อรองขั้นต่ำ</b> (เช่น ≥ 1.50 — เดิมพันราคาต่ำกว่าไม่นับ) ว่า <b>บังคับเล่นสเต็ปหรือไม่</b> ตลาดที่ยกเว้น เงินเดิมพันสูงสุดขณะโบนัสยังทำงาน และวันหมดอายุ เงื่อนไขเปลี่ยนได้ — อย่าเชื่อพาดหัวเด็ดขาด`],
+    [`One account per brand, real details. Multi-accounting voids winnings.`, `หนึ่งบัญชีต่อหนึ่งแบรนด์ ข้อมูลจริง การมีหลายบัญชีทำให้เงินรางวัลเป็นโมฆะ`],
+    [`Do it BEFORE depositing where possible — unverified accounts are the #1 cause of blocked withdrawals. No-KYC crypto books can skip this.`, `ทำ <b>ก่อน</b> ฝากเงินถ้าเป็นไปได้ — บัญชีที่ยังไม่ยืนยันเป็นสาเหตุอันดับ 1 ของการถูกบล็อกการถอน เว็บคริปโตที่ไม่ต้อง KYC ข้ามขั้นนี้ได้`],
+    [`Enter any required code and confirm the bonus (or free bet) is credited.`, `กรอกโค้ดที่ต้องใช้ (ถ้ามี) และยืนยันว่าโบนัส (หรือฟรีเบ็ต) ถูกเครดิตแล้ว`],
+    [`Some offers need a qualifying deposit bet at/above the minimum odds to release the bonus or free bet. Use a single selection, not an accumulator.`, `บางโปรต้องวางเดิมพันจากเงินฝากที่เข้าเงื่อนไขที่ราคาต่อรองตั้งแต่ขั้นต่ำขึ้นไป เพื่อปลดโบนัสหรือฟรีเบ็ต ใช้การเลือกแบบเดี่ยว ไม่ใช่สเต็ป`],
+    [`A stake-not-returned free bet is worth ~70% of its face. Maximise it: put it on a single at higher odds (~3.0–5.0), not a short-priced favourite, and never split across bets.`, `ฟรีเบ็ตแบบไม่คืนเงินเดิมพันมีค่า ~70% ของมูลค่าหน้าบัตร ใช้ให้คุ้มที่สุด: วางกับ <b>บิลเดี่ยว</b> ที่ราคาต่อรองสูงขึ้น (~3.0–5.0) ไม่ใช่ตัวเต็งราคาต่ำ และอย่าแบ่งเดิมพัน`],
+    [`The +EV existed only while clearing. Every extra bet after just pays the margin. Withdraw now.`, `+EV มีอยู่เฉพาะตอนกำลังเคลียร์ ทุกเดิมพันส่วนเกินหลังจากนั้นแค่จ่ายมาร์จิ้น ถอนเดี๋ยวนี้`],
+    [`Cash out the full balance. Don't leave funds 'for next time'.`, `ถอนยอดเงินทั้งหมด อย่าทิ้งเงินไว้ 'สำหรับคราวหน้า'`],
+    [`Enter net profit/loss for this mission. Expected ≈ +$0 — but sports variance is real; a single run can swing hard.`, `กรอกกำไร/ขาดทุนสุทธิของภารกิจนี้ คาดว่า ≈ <b>+$0</b> — แต่ความแปรปรวนของกีฬามีจริง; รอบเดียวอาจแกว่งแรง`],
+    [`No turnover trap here — the rebate or free bet is value with little or nothing to clear. Opt in.`, `ไม่มีกับดักเทิร์นโอเวอร์ที่นี่ — เงินคืนหรือฟรีเบ็ตเป็นคุณค่าที่แทบไม่มีอะไรต้องเคลียร์ กดเลือกรับ`],
+    [`Set a session loss-limit first. Cashback/rakeback softens losses; it is NOT a reason to deposit or stake more.`, `ตั้งลิมิตขาดทุนต่อรอบก่อน แคชแบ็ก/เรคแบ็กช่วยบรรเทาการขาดทุน; <b>ไม่ใช่</b> เหตุผลให้ฝากหรือเดิมพันเพิ่ม`],
+    [`Use the free bet / claim the rebate. Expected ≈ +$0.`, `ใช้ฟรีเบ็ต / เคลมเงินคืน คาดว่า ≈ <b>+$0</b>`],
+
+    /* ---- step buttons / inputs ---- */
+    [`Set deposit`, `ตั้งเงินฝาก`],
+    [`Update`, `อัปเดต`],
+    [`Log & finish`, `บันทึกและจบ`],
+    [`$ so far`, `$ สะสมแล้ว`],
+    [`Unlocks when wagering hits 100%. Tempted to keep going?`, `ปลดล็อกเมื่อเดิมพันถึง 100% อยากเล่นต่อใช่ไหม?`],
+    [`…keep playing?`, `…เล่นต่อ?`],
+    [`Use the input/button for this step.`, `ใช้ช่องกรอก/ปุ่มสำหรับขั้นตอนนี้`],
+
+    /* ---- mission modal misc ---- */
+    [`💡 Why this mission:`, `💡 ทำไมต้องทำภารกิจนี้:`],
+    [`🛑 Stop-rules:`, `🛑 กฎหยุดเล่น:`],
+    [`📊 Max bet? Check whether this bonus caps your stake. No cap → you can bold-play (a few big high-odds bets — tap "📊 Bold play"); it earns its keep mainly at 10×+ turnover. Capped (the EU books cap ~$5) → grind small singles, which is safe and ~same EV at low turnover. The TH-facing books here show no max in our data — verify on site.`, `📊 <b>เดิมพันสูงสุด?</b> ตรวจว่าโบนัสนี้จำกัดเงินเดิมพันของคุณหรือไม่ <b>ไม่จำกัด</b> → เล่นแบบกล้าได้กล้าเสียได้ (เดิมพันก้อนใหญ่ราคาต่อรองสูงไม่กี่ครั้ง — แตะ "📊 เล่นแบบกล้าได้กล้าเสีย"); คุ้มค่าหลัก ๆ ที่เทิร์นโอเวอร์ 10×+ <b>จำกัด</b> (เว็บ EU จำกัด ~$5) → ปั่นบิลเดี่ยวเล็ก ๆ ซึ่งปลอดภัยและ EV ~เท่ากันที่เทิร์นต่ำ เว็บที่เน้นตลาดไทยในนี้ไม่แสดงเพดานในข้อมูลของเรา — ตรวจสอบบนเว็บ`],
+    [`🎉 Turnover complete — WITHDRAW NOW`, `🎉 เทิร์นโอเวอร์ครบ — ถอนเดี๋ยวนี้`],
+    [`The edge is spent. Click the withdraw step. Do NOT keep playing.`, `ความได้เปรียบหมดแล้ว คลิกขั้นตอนถอนเงิน <b>อย่า</b> เล่นต่อ`],
+    [`✅ The campaign skips this on purpose. You earned the 🚫 Trap Dodger badge for looking before leaping. Stick to Tiers 1–2.`, `✅ <b>แคมเปญข้ามอันนี้โดยตั้งใจ</b> คุณได้รับเหรียญ 🚫 <b>นักหลบกับดัก</b> เพราะดูก่อนกระโจน ยึดอยู่กับเทียร์ 1–2`],
+    [`Got it — I'll skip it`, `เข้าใจแล้ว — ฉันจะข้ามมัน`],
+
+    /* ---- academy modal ---- */
+    [`The whole game in 60 seconds`, `เกมทั้งหมดใน 60 วินาที`],
+    [`Sportsbooks earn from the margin baked into their odds. A welcome bonus is worth taking only if its turnover is cheap to clear:`, `เว็บกีฬาทำเงินจาก <b>มาร์จิ้น</b> ที่ฝังอยู่ในราคาต่อรอง โบนัสต้อนรับคุ้มที่จะรับก็ต่อเมื่อเทิร์นโอเวอร์ของมันเคลียร์ได้ถูก:`],
+    [`Turnover here is usually low (5–12×) on tight-margin Asian books, so MOST sports bonuses are +EV. Two things flip them negative: huge turnover (35–40×) and accumulator requirements (each leg multiplies the margin).`, `เทิร์นโอเวอร์ในนี้มักต่ำ (5–12×) บนเว็บอาเซียนที่มาร์จิ้นแคบ ดังนั้นโบนัสกีฬา <b>ส่วนใหญ่</b> เป็น +EV สองสิ่งที่พลิกให้เป็นลบ: <b>เทิร์นโอเวอร์มหาศาล (35–40×)</b> และ <b>เงื่อนไขบิลสเต็ป</b> (แต่ละคู่ทบมาร์จิ้น)`],
+    [`📝 The rules this game enforces for you: 1. Clear with SINGLES at the minimum odds — never the forced-acca route. 2. Free bets are worth ~70% of face — use on ONE pick at higher odds (~3–5), never split. 3. Stop-win — turnover hits 100%? Withdraw. Every extra bet just pays margin. 4. Stop-loss / budget — bust before clearing? Walk. Never redeposit to chase.`, `📝 กฎที่เกมนี้บังคับใช้ให้คุณ: <br>1. <b>เคลียร์ด้วยบิลเดี่ยว</b> ที่ราคาต่อรองขั้นต่ำ — อย่าไปทางบังคับสเต็ปเด็ดขาด <br>2. <b>ฟรีเบ็ต</b> มีค่า ~70% ของมูลค่าหน้าบัตร — ใช้กับการเลือกเพียงคู่เดียวที่ราคาต่อรองสูงขึ้น (~3–5) อย่าแบ่งเดิมพัน <br>3. <b>หยุดเมื่อชนะ</b> — เทิร์นโอเวอร์ถึง 100%? ถอน ทุกเดิมพันส่วนเกินแค่จ่ายมาร์จิ้น <br>4. <b>หยุดเมื่อแพ้ / งบ</b> — เงินหมดก่อนเคลียร์? เดินจากไป อย่าฝากซ้ำเพื่อไล่ตาม`],
+    [`Quick check`, `ทดสอบเร็ว`],
+    [`Quick check ✓ passed`, `ทดสอบเร็ว <span style="color:var(--good)">✓ ผ่าน</span>`],
+
+    /* ---- quiz ---- */
+    [`A sportsbook offers 100% up to $200 but the turnover must be cleared on 3-leg accumulators at 1.40+. Versus a plain 5× singles bonus, is it better or worse?`, `เว็บกีฬาเสนอ <b>100% สูงสุด $200</b> แต่ต้องเคลียร์เทิร์นโอเวอร์ด้วย <b>สเต็ป 3 คู่</b> ที่ 1.40+ เทียบกับโบนัส <b>เดี่ยว 5×</b> ธรรมดา ดีกว่าหรือแย่กว่า?`],
+    [`Better — accumulators pay bigger, so more value`, `ดีกว่า — สเต็ปจ่ายมากกว่า เลยมีคุณค่ามากกว่า`],
+    [`Worse — each acca leg multiplies the margin against you, and variance explodes`, `แย่กว่า — แต่ละคู่ในสเต็ปทบมาร์จิ้นที่เสียเปรียบคุณ และความแปรปรวนพุ่งทะยาน`],
+    [`The same — turnover is turnover`, `เท่ากัน — เทิร์นโอเวอร์ก็คือเทิร์นโอเวอร์`],
+    [`The rule: a sports bonus is +EV if turnover × effective-margin < 1. On SINGLES at a low-margin book (~4%), 5× costs ~20% of the bonus. But an ACCUMULATOR requirement multiplies the margin by each leg — three ~4% legs ≈ 11–12% effective hold per bet — and the all-or-nothing variance means you often bust before clearing. Always prefer SINGLES bonuses, and clear with singles at the minimum odds.`, `กฎ: โบนัสกีฬาเป็น +EV หาก <b>เทิร์นโอเวอร์ × มาร์จิ้นที่แท้จริง < 1</b> บน <b>บิลเดี่ยว</b> ที่เว็บมาร์จิ้นต่ำ (~4%) 5× มีต้นทุน ~20% ของโบนัส แต่ <b>เงื่อนไขบิลสเต็ป</b> ทบมาร์จิ้นด้วยจำนวนคู่ — สามคู่ ~4% ≈ 11–12% hold จริงต่อเดิมพัน — และความแปรปรวนแบบได้หมดหรือเสียหมดทำให้คุณมักเงินหมดก่อนเคลียร์เสร็จ เลือกโบนัสแบบ <b>เดี่ยว</b> เสมอ และเคลียร์ด้วยบิลเดี่ยวที่ราคาต่อรองขั้นต่ำ`],
+
+    /* ---- badges ---- */
+    [`Graduate — finished the Academy`, `บัณฑิต — เรียนจบสถาบันฝึกฝน`],
+    [`Safety First — cleared a Pure-Value mission`, `ปลอดภัยไว้ก่อน — เคลียร์ภารกิจคุณค่าล้วน`],
+    [`First Clear — completed a low-WR clear`, `เคลียร์ครั้งแรก — เคลียร์เทิร์นต่ำสำเร็จ`],
+    [`Cash & Run — withdrew the instant WR hit 100%`, `ถอนแล้วหนี — ถอนทันทีที่เทิร์นถึง 100%`],
+    [`Ice Veins — logged a loss without chasing`, `ใจเย็นเป็นน้ำแข็ง — บันทึกการขาดทุนโดยไม่ไล่ตาม`],
+    [`High Roller — completed a Tier-3 mission`, `นักพนันใหญ่ — ทำภารกิจเทียร์ 3 สำเร็จ`],
+    [`Trap Dodger — inspected a trap and walked away`, `นักหลบกับดัก — ตรวจสอบกับดักแล้วเดินจากไป`],
+    [`Campaign Complete — finished every recommended mission`, `แคมเปญสำเร็จ — ทำทุกภารกิจที่แนะนำครบ`],
+
+    /* ---- card buttons ---- */
+    [`🔍 Why it's a trap`, `🔍 ทำไมถึงเป็นกับดัก`],
+    [`↻ Review lesson`, `↻ ทบทวนบทเรียน`],
+    [`▶ Start lesson`, `▶ เริ่มบทเรียน`],
+    [`🔒 Locked`, `🔒 ล็อก`],
+    [`✓ Completed — review`, `✓ เสร็จแล้ว — ทบทวน`],
+    [`▶ Open mission`, `▶ เปิดภารกิจ`],
+    [`🔒 Complete the previous tier to unlock.`, `🔒 ทำเทียร์ก่อนหน้าให้เสร็จเพื่อปลดล็อก`],
+    [`Lesson complete`, `บทเรียนเสร็จแล้ว`],
+    [`Lesson`, `บทเรียน`],
+
+    /* ---- trap modal ---- */
+    [`🎣 Big headline, brutal terms. The math on a $200 deposit:`, `🎣 พาดหัวใหญ่ เงื่อนไขโหดร้าย การคำนวณบนเงินฝาก $200:`],
+
+    /* ---- bold-play calculator ---- */
+    [`📊 Bold-play calculator`, `📊 เครื่องคำนวณเล่นกล้าได้กล้าเสีย`],
+    [`No max bet? Simulate big high-odds bets vs grinding`, `ไม่มีเดิมพันสูงสุด? จำลองเดิมพันก้อนใหญ่ราคาต่อรองสูงเทียบกับการปั่นทีละน้อย`],
+    [`With no max-bet cap you can clear turnover in a few big bets instead of grinding. The truth: this is a VARIANCE choice, not an EV one. Pick a preset or punch in your own offer.`, `เมื่อ <b>ไม่มีเพดานเดิมพันสูงสุด</b> คุณเคลียร์เทิร์นโอเวอร์ได้ด้วยเดิมพันก้อนใหญ่ไม่กี่ครั้งแทนการปั่น ความจริง: นี่คือทางเลือกเรื่อง <b>ความแปรปรวน</b> ไม่ใช่ EV เลือกพรีเซ็ตหรือใส่โปรของคุณเอง`],
+    [`One-tap preset`, `พรีเซ็ตแตะเดียว`],
+    [`— custom —`, `— กำหนดเอง —`],
+    [`Bonus type`, `ประเภทโบนัส`],
+    [`Sticky (dep locked)`, `Sticky (ล็อกเงินฝาก)`],
+    [`Non-sticky (dep safe)`, `Non-sticky (เงินฝากปลอดภัย)`],
+    [`Deposit $`, `เงินฝาก $`],
+    [`Bonus %`, `โบนัส %`],
+    [`Turnover ×bonus`, `เทิร์นโอเวอร์ ×โบนัส`],
+    [`Margin %`, `มาร์จิ้น %`],
+    [`Odds`, `ราคาต่อรอง`],
+    [`Stake`, `เงินเดิมพัน`],
+    [`Grind (small)`, `ปั่น (เล็ก)`],
+    [`Half stack`, `ครึ่งกอง`],
+    [`Whole stack`, `ทั้งกอง`],
+    [`▶ Run 25,000 sims`, `▶ รันจำลอง 25,000 ครั้ง`],
+    [`🧭 Rules of thumb: ≤5× turnover → grind (same EV, ~1% bust, usually walk away ahead). 10×+ with no max bet → bold play earns its keep. Whole-stack = lottery. Non-sticky = you keep your deposit, so worst case net is $0 (the free bonus busts) — far gentler bust math. You can't beat ≈(bonus − margin) on average; odds & stake only move variance.`, `🧭 <b>กฎคร่าว ๆ:</b> เทิร์นโอเวอร์ ≤5× → <b>ปั่น</b> (EV เท่ากัน เงินหมด ~1% มักเดินจากไปแบบได้กำไร) 10×+ ที่ไม่มีเดิมพันสูงสุด → <b>เล่นกล้าได้กล้าเสีย</b> คุ้มค่า <b>ทั้งกอง = ลอตเตอรี</b> <b>Non-sticky</b> = คุณเก็บเงินฝากไว้ กรณีแย่สุดสุทธิคือ $0 (โบนัสฟรีหมด) — คณิตเงินหมดผ่อนกว่ามาก คุณเอาชนะ ≈(โบนัส − มาร์จิ้น) โดยเฉลี่ยไม่ได้; ราคาต่อรองและเงินเดิมพันแค่ขยับความแปรปรวน`],
+    [`net EV`, `EV สุทธิ`],
+    [`median`, `ค่ามัธยฐาน`],
+    [`P(lose dep)`, `โอกาส(เสียเงินฝาก)`],
+    [`P(bonus busts)`, `โอกาส(โบนัสหมด)`],
+    [`walk-ahead`, `เดินจากไปแบบกำไร`],
+    [`95th pct`, `เปอร์เซ็นไทล์ที่ 95`],
+
+    /* ---- toasts / confirms / alerts ---- */
+    [`Reset campaign progress? (Your betTrackerV1 data is NOT touched.)`, `รีเซ็ตความคืบหน้าแคมเปญ? (ข้อมูล betTrackerV1 ของคุณจะไม่ถูกแตะต้อง)`],
+    [`Campaign reset.`, `รีเซ็ตแคมเปญแล้ว`],
+    [`⚠ Every bet past 100% turnover is pure −EV — the edge is gone.`, `⚠ ทุกเดิมพันหลังเทิร์นโอเวอร์ 100% เป็น −EV ล้วน ๆ — ความได้เปรียบหมดแล้ว`],
+    [`🎓 Academy passed — campaign unlocked! (+50 XP)`, `🎓 ผ่านสถาบันฝึกฝน — ปลดล็อกแคมเปญแล้ว! (+50 XP)`],
+    [`Enter a casino name.`, `กรอกชื่อคาสิโน`],
+    [`✓ Session saved.`, `✓ บันทึกรอบแล้ว`],
+    [`Nothing new to import.`, `ไม่มีอะไรใหม่ให้นำเข้า`],
+    [`Delete this session?`, `ลบรอบนี้?`],
+
+    /* ---- payout log ---- */
+    [`📈 Bankroll over time — projected vs realized`, `📈 เงินทุนตามช่วงเวลา — คาดการณ์เทียบกับที่ได้จริง`],
+    [`Log a session below to see your curve build.`, `บันทึกรอบด้านล่างเพื่อดูเส้นกราฟของคุณก่อตัว`],
+    [`Realized bankroll`, `เงินทุนที่ได้จริง`],
+    [`Projected (EV)`, `คาดการณ์ (EV)`],
+    [`Bankroll now`, `เงินทุนตอนนี้`],
+    [`Realized net`, `สุทธิที่ได้จริง`],
+    [`Variance / luck`, `ความแปรปรวน / ดวง`],
+    [`Deposited`, `ฝากแล้ว`],
+    [`Withdrawn`, `ถอนแล้ว`],
+    [`Sessions`, `รอบ`],
+    [`➕ Log a session`, `➕ บันทึกรอบ`],
+    [`✎ Edit session`, `✎ แก้ไขรอบ`],
+    [`Date`, `วันที่`],
+    [`Sportsbook`, `เว็บกีฬา`],
+    [`Bonus $`, `โบนัส $`],
+    [`Turnover $`, `เทิร์นโอเวอร์ $`],
+    [`Withdrawn $`, `ถอนแล้ว $`],
+    [`Status`, `สถานะ`],
+    [`Projected EV $ (auto)`, `EV คาดการณ์ $ (อัตโนมัติ)`],
+    [`Notes`, `บันทึก`],
+    [`code used, slot, withdrawal method…`, `โค้ดที่ใช้, สล็อต, วิธีถอน…`],
+    [`auto`, `อัตโนมัติ`],
+    [`Save session`, `บันทึกรอบ`],
+    [`Update session`, `อัปเดตรอบ`],
+    [`Cancel edit`, `ยกเลิกการแก้ไข`],
+    [`⤓ Import completed campaign missions`, `⤓ นำเข้าภารกิจแคมเปญที่ทำเสร็จ`],
+    [`⤒ Export CSV`, `⤒ ส่งออก CSV`],
+    [`Net = Withdrawn − Deposit. Variance shows how far luck has pushed you from expectation — over many sessions it should trend toward $0 if your reads are right.`, `สุทธิ = ถอน − ฝาก <b>ความแปรปรวน</b> แสดงว่าดวงผลักคุณห่างจากค่าคาดหวังแค่ไหน — เมื่อเล่นหลายรอบควรจะวิ่งเข้าหา $0 หากการอ่านเกมของคุณถูกต้อง`],
+    [`No sessions logged yet.`, `ยังไม่มีรอบที่บันทึก`],
+
+    /* ---- table headers ---- */
+    [`Book`, `เว็บ`],
+    [`Dep`, `ฝาก`],
+    [`Bonus`, `โบนัส`],
+    [`Turnover`, `เทิร์นโอเวอร์`],
+    [`Net`, `สุทธิ`],
+    [`Proj`, `คาดการณ์`],
+    [`Edit`, `แก้ไข`],
+    [`Delete`, `ลบ`],
+
+    /* ---- status values ---- */
+    [`in-progress`, `กำลังดำเนินการ`],
+    [`cleared`, `เคลียร์แล้ว`],
+    [`busted`, `เงินหมด`],
+    [`withdrawn`, `ถอนแล้ว`],
+
+    /* ---- misc placeholders ---- */
+    [`e.g. We88`, `เช่น We88`]
+  ];
+  var DICT={};for(var _i=0;_i<PAIRS.length;_i++){DICT[nrm(PAIRS[_i][0])]=PAIRS[_i][1];}
+
+  /* === PATTERNS for runtime-variable strings === */
+  var PATTERNS=[
+    /* HUD level label: "Level 1 · Rookie" */
+    {re:/^Level (\d+) · (.+)$/, fn:function(m){return 'เลเวล '+m[1]+' · '+(RANKS_TH[m[2]]||m[2]);}},
+    /* XP label: "0 / 100 XP" */
+    {re:/^(\d+) \/ (\d+) XP$/, fn:function(m){return m[1]+' / '+m[2]+' XP';}},
+    /* mission card step counter: "3 / 9 steps" */
+    {re:/^(\d+) \/ (\d+) steps$/, fn:function(m){return m[1]+' / '+m[2]+' ขั้นตอน';}},
+    /* tracker number: "#66 in tracker" */
+    {re:/^#(\d+) in tracker$/, fn:function(m){return '#'+m[1]+' ในแทร็กเกอร์';}},
+    /* deposit recommended detail: "Recommended: $200 — sizes the bonus to its cap without over-committing your $200." */
+    {re:/^Recommended: \$(\d+) — sizes the bonus to its cap without over-committing your \$(\d+)\.$/, fn:function(m){return 'แนะนำ: $'+m[1]+' — ปรับขนาดโบนัสให้เต็มเพดานโดยไม่ทุ่มเงิน $'+m[2]+' ของคุณมากเกินไป';}},
+    /* claim detail with offer text */
+    {re:/^Enter any required code and confirm the bonus \(or free bet\) is credited\. This offer: (.+)$/, fn:function(m){return 'กรอกโค้ดที่ต้องใช้ (ถ้ามี) และยืนยันว่าโบนัส (หรือฟรีเบ็ต) ถูกเครดิตแล้ว โปรนี้: '+m[1];}},
+    /* turnover step label: "Clear the turnover — $2,000" */
+    {re:/^Clear the turnover — \$([\d,]+)$/, fn:function(m){return 'เคลียร์เทิร์นโอเวอร์ — $'+m[1];}},
+    /* result expected detail: "Enter net profit/loss for this mission. Expected ≈ +$120 — but sports variance is real; a single run can swing hard." */
+    {re:/^Enter net profit\/loss for this mission\. Expected ≈ \+\$(\d+) — but sports variance is real; a single run can swing hard\.$/, fn:function(m){return 'กรอกกำไร/ขาดทุนสุทธิของภารกิจนี้ คาดว่า ≈ <b>+$'+m[1]+'</b> — แต่ความแปรปรวนของกีฬามีจริง; รอบเดียวอาจแกว่งแรง';}},
+    /* collect expected detail: "Use the free bet / claim the rebate. Expected ≈ +$10." */
+    {re:/^Use the free bet \/ claim the rebate\. Expected ≈ \+\$(\d+)\.$/, fn:function(m){return 'ใช้ฟรีเบ็ต / เคลมเงินคืน คาดว่า ≈ <b>+$'+m[1]+'</b>';}},
+    /* deposit input placeholder: "$ 200" */
+    {re:/^\$ (\d+)$/, fn:function(m){return '$ '+m[1];}},
+    /* recommended note: "recommended $200" */
+    {re:/^recommended \$(\d+)$/, fn:function(m){return 'แนะนำ $'+m[1];}},
+    /* +$maxbet button: "+ $10" */
+    {re:/^\+ \$(\d+)$/, fn:function(m){return '+ $'+m[1];}},
+    /* turnover meta: "2,000 / 2,000 · ≈200 bets at ~$10" */
+    {re:/^([\d,]+) \/ ([\d,]+) · ≈(\d+) bets at ~\$(\d+)$/, fn:function(m){return m[1]+' / '+m[2]+' · ≈'+m[3]+' บิล ที่ ~$'+m[4];}},
+    /* result placeholder: "net $ (e.g. 120)" */
+    {re:/^net \$ \(e\.g\. (-?\d+)\)$/, fn:function(m){return 'สุทธิ $ (เช่น '+m[1]+')';}},
+    /* synced note: "✓ synced to betTrackerV1 (1:23:45 PM)" */
+    {re:/^✓ synced to betTrackerV1 \((.+)\)$/, fn:function(m){return '✓ ซิงค์ไปยัง betTrackerV1 แล้ว ('+m[1]+')';}},
+    /* mission complete toast: "✅ Mission complete: NAME  (+50 XP)" */
+    {re:/^✅ Mission complete: (.+?)\s+\(\+50 XP\)$/, fn:function(m){return '✅ ภารกิจสำเร็จ: '+m[1]+' (+50 XP)';}},
+    /* badge unlocked toast: "🏅 Badge unlocked: NAME" */
+    {re:/^🏅 Badge unlocked: (.+)$/, fn:function(m){var n=DICT[nrm(m[1])]||m[1];return '🏅 ปลดล็อกเหรียญตรา: '+n;}},
+    /* import toast: "⤓ Imported 3 mission(s)." */
+    {re:/^⤓ Imported (\d+) mission\(s\)\.$/, fn:function(m){return '⤓ นำเข้าแล้ว '+m[1]+' ภารกิจ';}},
+    /* sign-out confirm: "Sign out of Player 1a2b?" */
+    {re:/^Sign out of (.+)\?$/, fn:function(m){return 'ออกจากระบบของ '+m[1]+'?';}},
+    /* sessions header: "📒 Sessions (4)" */
+    {re:/^📒 Sessions \((\d+)\)$/, fn:function(m){return '📒 รอบ ('+m[1]+')';}},
+    /* sessions stat: "3 · 1W" */
+    {re:/^(\d+) · (\d+)W$/, fn:function(m){return m[1]+' · ชนะ '+m[2];}},
+    /* start legend: "Start $200" */
+    {re:/^Start \$(\d+)$/, fn:function(m){return 'เริ่มต้น $'+m[1];}},
+    /* calc meta base: "bonus $200 · turnover $1000 · win-prob 48.0%/bet · sticky" */
+    {re:/^bonus \$(\d+) · turnover \$(\d+) · win-prob ([\d.]+)%\/bet · (sticky|non-sticky)$/, fn:function(m){return 'โบนัส $'+m[1]+' · เทิร์นโอเวอร์ $'+m[2]+' · โอกาสชนะ '+m[3]+'%/บิล · '+(m[4]==='sticky'?'sticky':'non-sticky');}},
+    /* calc meta with preset suffix bold-play: "...  ·  no max bet → bold play OK" */
+    {re:/^bonus \$(\d+) · turnover \$(\d+) · win-prob ([\d.]+)%\/bet · (sticky|non-sticky)\s+·\s+no max bet → bold play OK$/, fn:function(m){return 'โบนัส $'+m[1]+' · เทิร์นโอเวอร์ $'+m[2]+' · โอกาสชนะ '+m[3]+'%/บิล · '+(m[4]==='sticky'?'sticky':'non-sticky')+' · ไม่มีเดิมพันสูงสุด → เล่นกล้าได้กล้าเสียได้';}},
+    /* calc meta with preset suffix grind: "...  ·  max bet caps stake → grind" */
+    {re:/^bonus \$(\d+) · turnover \$(\d+) · win-prob ([\d.]+)%\/bet · (sticky|non-sticky)\s+·\s+max bet caps stake → grind$/, fn:function(m){return 'โบนัส $'+m[1]+' · เทิร์นโอเวอร์ $'+m[2]+' · โอกาสชนะ '+m[3]+'%/บิล · '+(m[4]==='sticky'?'sticky':'non-sticky')+' · เดิมพันสูงสุดจำกัดยอด → ปั่น';}},
+    /* account button when logged in: "👤 Player abcd" */
+    {re:/^👤 (Player .+)$/, fn:function(m){return '👤 '+m[1];}}
+  ];
+
+  var INLINE={B:1,I:1,EM:1,STRONG:1,SPAN:1,A:1,BR:1,SMALL:1,CODE:1,U:1,SUP:1,SUB:1,MARK:1,WBR:1};
+  var SKIP={SCRIPT:1,STYLE:1,NOSCRIPT:1,TEXTAREA:1,svg:1,SVG:1};
+  function lookup(raw){
+    if(raw==null)return null; if(!/\S/.test(raw))return null;
+    var sig=nrm(raw), t=DICT[sig];
+    if(t==null){for(var i=0;i<PATTERNS.length;i++){var m=sig.match(PATTERNS[i].re);if(m){t=PATTERNS[i].fn(m);break;}}}
+    return t==null?null:t;
+  }
+  function lookupText(raw){
+    var t=lookup(raw); if(t==null)return null;
+    var lead=(raw.match(/^\s*/)||[''])[0], tail=(raw.match(/\s*$/)||[''])[0];
+    return lead+t+tail;
+  }
+  function inlineOnly(el){
+    for(var c=el.firstChild;c;c=c.nextSibling){if(c.nodeType===1&&!INLINE[c.tagName])return false;}
+    return true;
+  }
+  function translate(node){
+    if(node.nodeType===3){var t=lookupText(node.nodeValue);if(t!=null&&t!==node.nodeValue)node.nodeValue=t;return;}
+    if(node.nodeType!==1)return;
+    if(node.id==='langSwitch'||node.__t||SKIP[node.nodeName])return;
+    if(node.placeholder){var ph=lookup(node.placeholder);if(ph!=null)node.placeholder=ph;}
+    var ttl=node.getAttribute&&node.getAttribute('title');
+    if(ttl){var tt=lookup(ttl);if(tt!=null)node.setAttribute('title',tt);}
+    if(inlineOnly(node)){var html=lookup(node.textContent);if(html!=null){node.innerHTML=html;node.__t=1;return;}}
+    for(var c=node.firstChild;c;c=c.nextSibling)translate(c);
+  }
+  function start(){
+    translate(document.body);
+    var dt=lookup(document.title);if(dt!=null)document.title=dt;
+    buildSwitch();
+    var obs=new MutationObserver(function(muts){
+      for(var i=0;i<muts.length;i++){var mu=muts[i];
+        if(mu.type==='characterData')translate(mu.target);
+        else for(var j=0;j<mu.addedNodes.length;j++)translate(mu.addedNodes[j]);}
+    });
+    obs.observe(document.body,{childList:true,subtree:true,characterData:true});
+  }
+  ready(start);
+})();
+</script>
+<!-- ===== /i18n ===== -->
 </body>
 </html>

@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bonus Hunter — New Player Campaign</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0c0f17; --panel:#141925; --panel2:#1b2230; --border:#28314a;
+    --text:#e6ebf5; --muted:#8794ad; --accent:#5b8cff; --accent2:#36d399;
+    --warn:#fbbf24; --bad:#f87171; --good:#34d399; --chip:#222b40; --gold:#ffd166;
+    --shadow:0 8px 28px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",Roboto,system-ui,Arial,sans-serif;background:
+    radial-gradient(1200px 600px at 80% -10%, #16203a 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, #1a1430 0%, transparent 55%),
+    var(--bg);color:var(--text);min-height:100vh}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  header{padding:24px 28px 6px;max-width:1300px;margin:0 auto}
+  h1{margin:0 0 4px;font-size:25px;letter-spacing:.2px;display:flex;align-items:center;gap:10px}
+  .sub{color:var(--muted);font-size:13px;line-height:1.55;max-width:880px}
+
+  /* ---- HUD ---- */
+  .hud{position:sticky;top:0;z-index:40;background:rgba(12,15,23,.9);backdrop-filter:blur(9px);
+    border-bottom:1px solid var(--border);margin-top:14px}
+  .hud-in{max-width:1300px;margin:0 auto;padding:12px 28px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  .hstat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:9px 15px;min-width:120px;box-shadow:var(--shadow)}
+  .hstat .k{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .hstat .v{font-size:20px;font-weight:800;margin-top:2px}
+  .v.pos{color:var(--good)} .v.neg{color:var(--bad)} .v.gold{color:var(--gold)}
+  .xpwrap{flex:1;min-width:200px}
+  .xpbar{height:12px;background:var(--panel2);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-top:6px}
+  .xpfill{height:100%;background:linear-gradient(90deg,#5b8cff,#36d399);width:0;transition:width .5s}
+  .lvl{font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+  .badges{display:flex;gap:6px;flex-wrap:wrap}
+  .badge{font-size:18px;width:34px;height:34px;display:grid;place-items:center;border-radius:10px;
+    background:var(--panel2);border:1px solid var(--border);position:relative;cursor:default}
+  .badge.locked{filter:grayscale(1);opacity:.32}
+  .badge .tip{position:absolute;bottom:42px;left:50%;transform:translateX(-50%);background:#000d;border:1px solid var(--border);
+    padding:6px 9px;border-radius:8px;font-size:11px;white-space:nowrap;display:none;z-index:5}
+  .badge:hover .tip{display:block}
+
+  main{max-width:1300px;margin:0 auto;padding:18px 28px 90px}
+
+  /* ---- tiers ---- */
+  .tier{margin:26px 0}
+  .tier-h{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+  .tier-h h2{font-size:18px;margin:0}
+  .tier-h .tag{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--chip);color:var(--muted);border:1px solid var(--border)}
+  .tier-h .tag.safe{color:#bdf5d6;border-color:#256047}
+  .tier-h .tag.edge{color:#cfe0ff;border-color:#33457a}
+  .tier-h .tag.var{color:#ffe2b8;border-color:#5a4423}
+  .tier-h .tag.trap{color:#ffc9c9;border-color:#5a2c2c}
+  .tier-desc{color:var(--muted);font-size:12.5px;margin:0 0 12px;max-width:900px;line-height:1.5}
+  .tier.locked{opacity:.5;pointer-events:none}
+  .lockmsg{font-size:12px;color:var(--warn);margin:2px 0 10px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .m{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;transition:.18s;overflow:hidden}
+  .m.done{border-color:#2e6b52;box-shadow:0 0 0 1px #2e6b5255,var(--shadow)}
+  .m.active{border-color:var(--accent);box-shadow:0 0 0 1px #5b8cff66,0 0 22px #3f6fe033,var(--shadow)}
+  .m.trap{border-color:#5a2c2c;background:linear-gradient(180deg,#1c1416,#141925)}
+  .m-head{padding:13px 15px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#1a2233,#141925)}
+  .m-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .m-name{font-size:16px;font-weight:700;display:flex;align-items:center;gap:7px}
+  .m-num{font-size:10px;color:var(--muted);background:var(--chip);padding:2px 7px;border-radius:20px}
+  .m-ev{font-size:18px;font-weight:800}
+  .m-sub{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.45}
+  .m-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+  .mc{font-size:10.5px;padding:2px 8px;border-radius:20px;background:var(--chip);color:var(--muted);border:1px solid var(--border)}
+  .mc.r1{color:#bdf5d6;border-color:#256047} .mc.r2{color:#ffe2b8;border-color:#5a4423} .mc.r3{color:#ffc9c9;border-color:#5a2c2c}
+  .m-body{padding:12px 15px;display:flex;flex-direction:column;gap:9px}
+  .m-prog{height:8px;background:var(--panel2);border-radius:20px;overflow:hidden;border:1px solid var(--border)}
+  .m-prog > i{display:block;height:100%;background:linear-gradient(90deg,#5b8cff,#36d399);width:0;transition:width .4s}
+  .m-foot{padding:0 15px 14px;display:flex;gap:8px}
+  .btn{background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:9px 14px;font-size:13px;cursor:pointer;transition:.15s;color:var(--text);font-family:inherit}
+  .btn:hover{border-color:var(--accent);background:#222c44}
+  .btn.primary{background:linear-gradient(180deg,#5b8cff,#3f6fe0);border-color:#3f6fe0;color:#fff}
+  .btn.good{background:linear-gradient(180deg,#36d399,#1f9e72);border-color:#1f9e72;color:#04140d;font-weight:700}
+  .btn.sm{padding:6px 10px;font-size:12px}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.full{width:100%;justify-content:center}
+
+  /* ---- step modal ---- */
+  .ovl{position:fixed;inset:0;background:#000a;backdrop-filter:blur(3px);display:none;z-index:60;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+  .ovl.on{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;max-width:620px;width:100%;box-shadow:var(--shadow)}
+  .modal-h{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;background:linear-gradient(180deg,#1a2233,#141925);border-radius:16px 16px 0 0}
+  .modal-h h3{margin:0;font-size:19px} .modal-h .x{cursor:pointer;font-size:22px;color:var(--muted);line-height:1}
+  .modal-b{padding:8px 20px 20px}
+  .why{background:#10233a;border:1px solid #244269;border-radius:10px;padding:10px 13px;font-size:12.5px;color:#cfe0ff;margin:12px 0;line-height:1.5}
+  .stoprule{background:#2a210f;border:1px solid #5a4423;border-radius:10px;padding:10px 13px;font-size:12.5px;color:#ffe2b8;margin:12px 0;line-height:1.5}
+  .stoprule b{color:var(--gold)}
+
+  .step{display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+  .step:last-child{border-bottom:0}
+  .step .box{flex-shrink:0;width:26px;height:26px;border-radius:8px;border:2px solid var(--border);display:grid;place-items:center;cursor:pointer;font-size:15px;transition:.15s;background:var(--panel2)}
+  .step.done .box{background:var(--good);border-color:var(--good);color:#04140d}
+  .step.locked{opacity:.45}
+  .step.done{padding:7px 0;opacity:.6}
+  .step.done .body > *:not(.lab){display:none}
+  .step.done .lab{font-weight:500;font-size:12.5px}
+  .step .body{flex:1}
+  .step .lab{font-size:13.5px;font-weight:600}
+  .step .det{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+  .step input.num{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);width:120px;margin-top:6px}
+  .miniprog{height:10px;background:var(--panel2);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-top:8px}
+  .miniprog > i{display:block;height:100%;background:linear-gradient(90deg,#5b8cff,#36d399);width:0;transition:width .35s}
+  .turn-row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+
+  .stopwin{background:linear-gradient(135deg,#1f9e72,#36d399);color:#04140d;border-radius:12px;padding:14px 16px;margin:10px 0;display:none}
+  .stopwin.on{display:block;animation:pulse 1.4s infinite}
+  .stopwin h4{margin:0 0 4px;font-size:16px} .stopwin p{margin:0;font-size:12.5px;font-weight:600}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 #36d39966}50%{box-shadow:0 0 0 8px #36d39900}}
+
+  .trap-math{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:#1c1416;border:1px solid #5a2c2c;border-radius:10px;padding:10px 13px;color:#ffc9c9;white-space:pre-wrap;line-height:1.55;margin:10px 0}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--panel);border:1px solid var(--accent);
+    border-radius:12px;padding:12px 20px;font-size:14px;box-shadow:var(--shadow);z-index:80;transition:.4s;font-weight:600}
+  .toast.on{transform:translateX(-50%) translateY(0)}
+  .toast.gold{border-color:var(--gold);color:var(--gold)}
+
+  .quiz{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+  .quiz .opt{padding:11px 13px;border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;background:var(--panel2);transition:.15s}
+  .quiz .opt:hover{border-color:var(--accent)}
+  .quiz .opt.right{border-color:var(--good);background:#10271c} .quiz .opt.wrong{border-color:var(--bad);background:#2a1414}
+  .footnote{color:var(--muted);font-size:11.5px;line-height:1.55;border-top:1px solid var(--border);margin-top:30px;padding-top:16px;max-width:980px}
+  .topbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+
+  /* view switch + payout log */
+  .seg{display:flex;background:var(--panel2);border:1px solid var(--border);border-radius:9px;overflow:hidden}
+  .seg button{background:transparent;border:0;padding:8px 14px;font-size:13px;color:var(--muted);cursor:pointer;font-family:inherit}
+  .seg button.active{background:var(--accent);color:#fff}
+  .seg a{background:transparent;padding:8px 14px;font-size:13px;color:var(--muted);text-decoration:none;display:flex;align-items:center}
+  .seg a.active{background:var(--accent);color:#fff}
+  .modeseg{border-color:var(--accent);box-shadow:0 0 0 1px #5b8cff44}
+  .modeseg a{font-weight:700}
+  .modeseg a:not(.active):hover{background:#222c44;color:var(--text)}
+  .field{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);outline:none;font-family:inherit}
+  .field:focus{border-color:var(--accent)}
+  .pl-wrap{display:flex;flex-direction:column;gap:16px}
+  .pl-stats{display:flex;flex-wrap:wrap;gap:12px}
+  .pl-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:11px 16px;min-width:120px;flex:1;box-shadow:var(--shadow)}
+  .pl-card .k{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .pl-card .v{font-size:20px;font-weight:800;margin-top:3px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px}
+  .panel h3{margin:0 0 12px;font-size:15px}
+  .legend{display:flex;gap:18px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+  .legend i{display:inline-block;width:15px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+  .pl-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:10px;align-items:end}
+  .pl-form label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
+  .pl-form .field{width:100%}
+  table.pl{width:100%;border-collapse:collapse;font-size:13px}
+  table.pl th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:8px 8px;border-bottom:1px solid var(--border)}
+  table.pl td{padding:9px 8px;border-bottom:1px solid var(--border)}
+  table.pl tr:hover{background:#161c2a}
+  .netpos{color:var(--good);font-weight:700} .netneg{color:var(--bad);font-weight:700}
+  .tag-st{font-size:10.5px;padding:2px 8px;border-radius:20px;background:var(--chip);border:1px solid var(--border);color:var(--muted)}
+  .iconbtn{background:none;border:0;cursor:pointer;color:var(--muted);font-size:14px;padding:3px 5px}
+  .iconbtn:hover{color:var(--accent)}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:24px}
+  #premiumBar{max-width:1300px;margin:14px auto 0;padding:0 28px}
+  .premium{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(135deg,#1b1533,#141925);border:1px solid #3b2f6b;border-radius:14px;padding:13px 18px;box-shadow:0 0 0 1px #5b8cff22,var(--shadow)}
+  .pm-tag{display:inline-block;font-size:10px;letter-spacing:.6px;font-weight:700;color:var(--gold);background:#2a210f;border:1px solid #5a4423;border-radius:20px;padding:3px 10px}
+  .pm-head{font-size:18px;font-weight:800;margin-top:8px}
+  .pm-roi{color:var(--good)} .pm-roi.neg{color:var(--bad)}
+  .pm-sub{font-size:12px;color:var(--muted);margin-top:3px}
+  .pm-ill{color:var(--warn)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎯 Bonus Hunter <span style="font-size:13px;color:var(--muted);font-weight:500">New Player Campaign</span></h1>
+  <p class="sub">Turn a <b>$200</b> bankroll into the best realistic return by hunting <b>only +EV bonuses</b> in the right order.
+  Every mission enforces the stop-rules for you. The big flashy bonuses are <b>locked traps</b> — you'll learn why.
+  Progress auto-syncs to your <b>Bonus &amp; Registration Tracker</b>.</p>
+  <div class="topbtns">
+    <div class="seg modeseg" id="modeSeg"><a href="casino.html" class="active">🎰 Casino</a><a href="sports.html">🏟️ Sports</a></div>
+    <div class="seg" id="viewSeg">
+      <button data-view="campaign" class="active">🎯 Campaign</button>
+      <button data-view="paylog">📒 Payout Log</button>
+    </div>
+    <button class="btn sm" id="acctBtn">👤 Account</button>
+    <button class="btn sm" id="howBtn">❓ How EV works</button>
+    <button class="btn sm danger" id="resetBtn">↺ Reset campaign</button>
+    <span id="syncNote" style="font-size:11.5px;color:var(--muted);align-self:center"></span>
+  </div>
+</header>
+
+<div class="hud"><div class="hud-in">
+  <div class="hstat"><div class="k">Bankroll (actual)</div><div class="v" id="bankActual">$200</div></div>
+  <div class="hstat"><div class="k">Projected (EV)</div><div class="v gold" id="bankProj">$200</div></div>
+  <div class="hstat"><div class="k">EV captured</div><div class="v pos" id="evCap">+$0</div></div>
+  <div class="xpwrap">
+    <div class="lvl"><span id="lvlLabel">Level 1 · Rookie</span><span id="xpLabel">0 / 100 XP</span></div>
+    <div class="xpbar"><i class="xpfill" id="xpfill"></i></div>
+  </div>
+  <div class="badges" id="badgeRow"></div>
+</div></div>
+
+<div id="premiumBar"></div>
+<main id="campaign"></main>
+<main id="paylog" style="display:none"></main>
+
+<div class="ovl" id="authOvl"><div class="modal" style="max-width:440px">
+  <div class="modal-h"><div><h3>👋 Welcome, Bonus Hunter</h3>
+    <div style="font-size:12px;color:var(--muted);margin-top:3px">Save your campaign, payout log & XP</div></div></div>
+  <div class="modal-b">
+    <button class="btn good full" id="bhQuick" style="font-size:15px;padding:13px;justify-content:center">⚡ Quick login — one click, no email</button>
+    <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--accent);font-size:13px">Use an email instead (syncs across devices)</summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <input class="field" id="bhEmail" type="email" placeholder="email" autocomplete="username">
+        <input class="field" id="bhPw" type="password" placeholder="password" autocomplete="current-password">
+        <div style="display:flex;gap:8px">
+          <button class="btn primary" id="bhLogin" style="flex:1;justify-content:center">Log in</button>
+          <button class="btn" id="bhReg" style="flex:1;justify-content:center">Create account</button>
+        </div>
+      </div>
+    </details>
+    <div id="authErr" style="color:var(--bad);font-size:12px;margin-top:8px;min-height:14px"></div>
+    <div style="text-align:center;margin-top:6px"><a href="#" id="bhSkip" style="color:var(--muted);font-size:13px">Play as guest →</a></div>
+    <div id="authModeNote" style="font-size:11px;color:var(--muted);margin-top:14px;border-top:1px solid var(--border);padding-top:10px"></div>
+  </div>
+</div></div>
+<div class="ovl" id="ovl"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   ASSUMPTIONS (mirror the EV engine): $1≈35 THB≈10 NOK,
+   slots RTP 96.5% (h=3.5%), deposit sized to max each bonus.
+   EV figures are EXPECTED values — real sessions vary.
+   ============================================================ */
+const H = 0.035, START = 200;
+
+/* ============ ACCOUNTS (Supabase one-click login, no email verification) ============
+   Demo-mode fallback: with no keys, "login" creates a local profile (this browser only).
+   Paste your project keys below to enable real, cross-device cloud accounts.            */
+const SUPABASE_URL = "https://dcboyhyiwgkqkutqgmqu.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjYm95aHlpd2drcWt1dHFnbXF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MTA2ODgsImV4cCI6MjA5NzI4NjY4OH0.KZvOHTunJHgzHXVVw087rZWsLzp_qsVvRWqa6YltsIo";
+const AUTH_LIVE = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
+let sb = AUTH_LIVE ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+let USER=null, SKIPPED=localStorage.getItem("bhAuthSkip")==="1", pushT=null;
+
+function authErr(m){const e=document.getElementById('authErr');if(e)e.textContent=m||"";}
+function showAuth(on){document.getElementById('authOvl').classList.toggle('on',!!on);}
+function updateAcct(){const b=document.getElementById('acctBtn');if(b)b.textContent=USER?("👤 "+(USER.label||"Player")):(SKIPPED?"👤 Guest":"👤 Log in");}
+
+async function initAuth(){
+  updateAcct();
+  document.getElementById('authModeNote').textContent = AUTH_LIVE
+    ? "Connected to Supabase — your progress syncs across devices."
+    : "Demo mode: login saves a profile in THIS browser only. Add Supabase keys in the file for real cross-device accounts.";
+  if(AUTH_LIVE){
+    try{const {data}=await sb.auth.getSession(); if(data.session){await onLogin(data.session.user);return;}}catch(e){}
+  }else{
+    const d=localStorage.getItem("bhDemoUser"); if(d){USER=JSON.parse(d);afterLogin(false);return;}
+  }
+  if(SKIPPED){updateAcct();return;}
+  showAuth(true);
+}
+async function quickLogin(){
+  authErr("");
+  if(AUTH_LIVE){
+    try{const {data,error}=await sb.auth.signInAnonymously(); if(error) throw error; await onLogin(data.user);}
+    catch(e){authErr((e.message||"Login failed")+" — enable Anonymous sign-ins in Supabase → Auth → Providers.");}
+  }else{
+    const id="demo-"+Date.now().toString(36); USER={id,label:"Player "+id.slice(-4)};
+    localStorage.setItem("bhDemoUser",JSON.stringify(USER)); afterLogin(false);
+  }
+}
+async function emailLogin(mode){
+  authErr(""); const email=document.getElementById('bhEmail').value.trim(), pw=document.getElementById('bhPw').value;
+  if(!email||!pw){authErr("Enter email and password.");return;}
+  if(AUTH_LIVE){
+    try{const fn=mode==='register'?sb.auth.signUp({email,password:pw}):sb.auth.signInWithPassword({email,password:pw});
+      const {data,error}=await fn; if(error) throw error;
+      if(!data.session){authErr("Account created — now click Log in.");return;}
+      await onLogin(data.user);}catch(e){authErr(e.message||"Auth failed.");}
+  }else{
+    USER={id:"demo-"+email,label:email,email}; localStorage.setItem("bhDemoUser",JSON.stringify(USER)); afterLogin(false);
+  }
+}
+async function onLogin(user){USER={id:user.id,email:user.email,label:user.email||("Player "+(user.id||"").slice(0,4))}; await pullState(); afterLogin(true);}
+function afterLogin(live){SKIPPED=false;localStorage.removeItem("bhAuthSkip");showAuth(false);updateAcct();render();renderHUD();renderPremium();toast("✓ Logged in"+(live?"":" (local profile)"),true);}
+function skipAuth(){SKIPPED=true;localStorage.setItem("bhAuthSkip","1");showAuth(false);updateAcct();}
+async function signOut(){if(AUTH_LIVE&&USER){try{await sb.auth.signOut();}catch(e){}}localStorage.removeItem("bhDemoUser");USER=null;updateAcct();toast("Signed out.");showAuth(true);}
+
+/* cloud state sync (LIVE only; debounced) — mirrors all three localStorage blobs */
+const SYNC_KEYS=["onboardingQuestV1","payoutLogV1","sportsQuestV1","sportsPayoutV1","betTrackerV1"];
+function snapshot(){const o={};SYNC_KEYS.forEach(k=>{const v=localStorage.getItem(k);if(v!=null)o[k]=v;});return o;}
+function cloudPush(){if(!AUTH_LIVE||!USER)return;clearTimeout(pushT);pushT=setTimeout(async()=>{
+  try{await sb.from("player_state").upsert({user_id:USER.id,state:snapshot(),updated_at:new Date().toISOString()});}catch(e){}
+},1200);}
+async function pullState(){if(!AUTH_LIVE||!USER)return;
+  try{const {data}=await sb.from("player_state").select("state").eq("user_id",USER.id).maybeSingle();
+    if(data&&data.state){SYNC_KEYS.forEach(k=>{if(data.state[k]!=null)localStorage.setItem(k,data.state[k]);});
+      Q=load(); PL=plLoad();
+    }else{cloudPush();}
+  }catch(e){cloudPush();}
+}
+
+/* wire the welcome overlay (its HTML is already in the DOM — this script runs at end of body) */
+document.getElementById('bhQuick').onclick=quickLogin;
+document.getElementById('bhLogin').onclick=()=>emailLogin('login');
+document.getElementById('bhReg').onclick=()=>emailLogin('register');
+document.getElementById('bhSkip').onclick=(e)=>{e.preventDefault();skipAuth();};
+document.getElementById('acctBtn').onclick=()=>{if(USER){if(confirm("Sign out of "+(USER.label||"this profile")+"?"))signOut();}else showAuth(true);};
+
+/* ---- shared persistence with the existing tracker ---- */
+const BT_KEY="betTrackerV1";
+function btLoad(){try{return JSON.parse(localStorage.getItem(BT_KEY))||{}}catch(e){return{}}}
+function btSave(o){localStorage.setItem(BT_KEY,JSON.stringify(o))}
+function btRec(o,n){return o[n]||(o[n]={status:"none",deposit:"",bonus:"",wager:"",result:"",date:"",notes:"",kyc:false})}
+function syncTracker(n,patch){const o=btLoad();const r=btRec(o,n);Object.assign(r,patch);btSave(o);
+  document.getElementById('syncNote').textContent="✓ synced to betTrackerV1 ("+new Date().toLocaleTimeString()+")";cloudPush();}
+
+/* ---- quest state ---- */
+const Q_KEY="onboardingQuestV1";
+let Q = load();
+function load(){try{return JSON.parse(localStorage.getItem(Q_KEY))||fresh()}catch(e){return fresh()}}
+function fresh(){return{xp:0,badges:[],prog:{},done:[],seenTraps:[]}}
+function save(){localStorage.setItem(Q_KEY,JSON.stringify(Q));cloudPush();}
+function prog(id){return Q.prog[id]||(Q.prog[id]={steps:[],deposit:null,turnover:0,result:null})}
+
+/* ---- step factories ---- */
+const S = {
+  confirm:(d)=>({id:"confirm",type:"task",lab:"Confirm the terms on the official site",
+    det:"Check the live wagering requirement, the max bet while a bonus is active ("+(d.maxbet?("$"+d.maxbet):"~$5")+"), bonus-eligible game RTP, and any max-cashout cap. Terms change — never trust the headline."}),
+  register:(d)=>({id:"register",type:"task",sync:{status:"registered",date:"today"},
+    lab:"Register your account", det:"One account per brand, real details. Multi-accounting voids winnings."}),
+  kyc:(d)=>({id:"kyc",type:"task",sync:{kyc:true},lab:"Verify (KYC) if required",
+    det:"Do it BEFORE depositing where possible — unverified accounts are the #1 cause of blocked withdrawals. No-KYC crypto sites can skip this."}),
+  deposit:(d)=>({id:"deposit",type:"deposit",rec:d.deposit,
+    lab:"Deposit the recommended amount", det:"Recommended: <b>$"+d.deposit+"</b>. This sizes the bonus to its cap without over-committing your $200. Never deposit more to 'unlock' a bigger match."}),
+  claim:(d)=>({id:"claim",type:"task",sync:{bonus:d.bonusTxt||""},lab:"Opt in / claim the bonus",
+    det:"Enter any required code and confirm the bonus is credited. "+(d.bonusTxt?("This offer: "+d.bonusTxt):"")}),
+  wager:(d)=>({id:"wager",type:"wager",target:d.turnover,maxbet:d.maxbet||5,
+    lab:"Clear the wagering — turnover $"+d.turnover.toLocaleString(),
+    det:"Play a high-RTP, low-volatility slot at flat small stakes (≤$"+(d.maxbet||5)+"/bet, ~1–2% of balance). Low variance = best chance to finish the clear. Log your turnover as you go."}),
+  stopwin:(d)=>({id:"stopwin",type:"stopwin",lab:"STOP-WIN gate — withdraw the moment WR hits 100%",
+    det:"The +EV existed only DURING the clear. Every spin after is pure −EV. Withdraw now."}),
+  withdraw:(d)=>({id:"withdraw",type:"task",lab:"Withdraw to your wallet",det:"Cash out the full balance. Don't leave funds 'for next time'."}),
+  result:(d)=>({id:"result",type:"result",expect:d.ev,lab:"Log your result",
+    det:"Enter net profit/loss for this mission. Expected ≈ <b>+$"+d.ev+"</b> — but variance is real; a single run can differ a lot."}),
+  /* pure-value tier */
+  activate:(d)=>({id:"activate",type:"task",lab:"Activate cashback / rakeback",
+    det:"No wagering trap here — the rebate just shrinks the house edge. Opt into the loyalty/rakeback scheme."}),
+  playbudget:(d)=>({id:"playbudget",type:"task",lab:"Play only within your set budget",
+    det:"Set a session loss-limit first. Cashback softens losses; it is NOT a reason to deposit more."}),
+  collect:(d)=>({id:"collect",type:"result",expect:d.ev,lab:"Collect the rebate & log result",
+    det:"Claim the rakeback/cashback. Value is volume-based — expected ≈ <b>+$"+d.ev+"</b> over modest play."}),
+  /* non-sticky */
+  nsplay:(d)=>({id:"nsplay",type:"task",lab:"Cash → bet-to-double on BACCARAT, then clear on SLOTS",
+    det:"Non-sticky = your deposit is withdrawable; only the bonus is at risk. <b>Step 1 (cash):</b> if baccarat is allowed, bet your cash to ~double on banker — house edge ~1.06%, the cheapest variance you can buy (fewer, larger even-money bets = least edge paid). Hit your target → withdraw, bonus untouched. <b>Step 2 (bonus):</b> if the cash busts, the parachute deploys → switch to <b>slots</b> (100% wagering weight; baccarat barely counts) to clear the WR. ⚠ Check the max-bet-while-bonus rule — it can cap your baccarat stake even on your own cash."}),
+  nswithdraw:(d)=>({id:"nswithdraw",type:"task",lab:"Withdraw deposit anytime / cash out winnings",
+    det:"Because it's non-sticky you can pull your deposit whenever you stop. Worst case you lose only the planned bonus-phase stake — never your full $200."}),
+};
+
+/* ============================================================
+   CAMPAIGN DATA — built from the EV engine on your 85-site list
+   ============================================================ */
+const TIERS = [
+  {id:"academy",name:"🎓 The Academy",tag:"START HERE",tagcls:"",
+   desc:"One 60-second lesson + a quiz. This is the whole game in a nutshell — finish it to unlock the campaign.",
+   missions:[{
+     id:"academy",n:null,name:"The One Rule",ev:0,risk:"—",rcls:"r1",
+     chips:["Tutorial"], sub:"Why bonus size ≠ value.",
+     academy:true
+   }]},
+
+  {id:"t1",name:"Tier 1 — Pure Value",tag:"No wagering trap · safest",tagcls:"safe",
+   desc:"Cashback & rakeback offers. There is NO clearing requirement — the rebate directly reduces the house edge, so you can't be trapped. Always harvest these first; they protect the bankroll that funds everything else.",
+   missions:[
+     {id:"m77",n:77,name:"Thrill",ev:8,risk:"Very low",rcls:"r1",
+      bonusTxt:"Up to 70% Rakeback + 10% Cashback (no rollover)",deposit:50,turnover:0,maxbet:5,
+      chips:["No rollover","Rakeback","Cashback"],sub:"Rebate on losses, no wagering. Pure value.",
+      why:"No wagering requirement at all. A 10% cashback on net losses lowers your effective house edge directly — the rare offer that's +EV with zero clearing risk.",
+      stop:"Collect rakeback on schedule. <b>Never</b> deposit more just to 'earn more' rebate — the rebate is a fraction of losses, not free money.",
+      steps:["confirm","register","kyc","deposit","activate","playbudget","collect"]},
+     {id:"m79",n:79,name:"Cloudbet",ev:7,risk:"Very low",rcls:"r1",
+      bonusTxt:"100% up to 2,500 USDT released as 30% rakeback",deposit:50,turnover:0,maxbet:5,
+      chips:["Rakeback release","Crypto"],sub:"Bonus unlocks as cash rakeback as you play.",
+      why:"The match isn't sticky — it's released incrementally as rakeback while you play. No giant turnover wall; you keep what releases even if you stop.",
+      stop:"Stop whenever you like — released rakeback is already yours. Don't chase the full match by overplaying.",
+      steps:["confirm","register","kyc","deposit","activate","playbudget","collect"]},
+     {id:"m82",n:82,name:"Bitcasino.io",ev:6,risk:"Very low",rcls:"r1",
+      bonusTxt:"Up to 1,500 USDT — cashback / loyalty (no wagering)",deposit:50,turnover:0,maxbet:5,
+      chips:["No rollover","Loyalty"],sub:"Rewards via cashback & loyalty, not a match.",
+      why:"Value comes from a no-wager cashback/loyalty model rather than a trapped match bonus — so there's nothing to clear.",
+      stop:"Treat loyalty perks as a small rebate. Budget first; the perks don't change the games' edge much.",
+      steps:["confirm","register","kyc","deposit","activate","playbudget","collect"]},
+     {id:"m78",n:78,name:"Winz.io",ev:4,risk:"Very low",rcls:"r1",
+      bonusTxt:"Zero-wager free spins ('Wheel of Winz')",deposit:20,turnover:0,maxbet:5,
+      chips:["Zero wagering","Free spins"],sub:"Spin winnings are withdrawable instantly.",
+      why:"Free-spin winnings carry ZERO wagering — whatever you win is immediately cashable. Small but pure upside.",
+      stop:"Take the spins, withdraw any winnings, done. No deposit chasing.",
+      steps:["confirm","register","kyc","activate","collect"]},
+   ]},
+
+  {id:"t2",name:"Tier 2 — Low-WR Clears",tag:"The hard +EV · deposit at risk",tagcls:"edge",
+   desc:"100%-ish matches with LOW turnover (10–25×) — the only sticky bonuses whose math is positive on a 96.5% slot. Your deposit IS at risk to variance here, so do them only after Tier 1, one at a time, with strict stop-rules.",
+   missions:[
+     {id:"m51",n:51,name:"BK8",ev:32,risk:"Medium",rcls:"r2",verify:true,
+      bonusTxt:"100% Slots welcome · 12× turnover (Dep+Bonus)",deposit:200,turnover:4800,maxbet:5,
+      chips:["12× turnover","VERIFY cap"],sub:"Lowest WR in the list — confirm the casino cap.",
+      why:"12× turnover on Dep+Bonus at h=3.5% ⇒ expected cost ≈ $168 vs a $200 bonus ⇒ +$32. The single best clear-style EV here — IF the 100%/$200 cap is real. Confirm before depositing.",
+      stop:"<b>Stop-loss:</b> if the deposit busts before WR, walk — do not redeposit to chase. <b>Stop-win:</b> WR done → withdraw instantly.",
+      steps:["confirm","register","kyc","deposit","claim","wager","stopwin","withdraw","result"]},
+     {id:"m52",n:52,name:"We88",ev:23,risk:"Medium",rcls:"r2",
+      bonusTxt:"100% up to 5,000 THB (~$143) · 12× turnover (Dep+Bonus)",deposit:143,turnover:3429,maxbet:5,
+      chips:["12× turnover"],sub:"Deposit $143 → $143 bonus, clear $3,429.",
+      why:"12× turnover on Dep+Bonus ($286 base) ⇒ ~$120 expected cost vs $143 bonus ⇒ +$23. Solid, well-defined +EV.",
+      stop:"<b>Stop-loss:</b> deposit gone before WR = move on. <b>Stop-win:</b> hit 100% → withdraw, don't keep spinning.",
+      steps:["confirm","register","kyc","deposit","claim","wager","stopwin","withdraw","result"]},
+     {id:"m75",n:75,name:"MS.Slot",ev:18,risk:"Medium",rcls:"r2",
+      bonusTxt:"150% Slots up to 5,000 THB (~$143) · 25× bonus",deposit:95,turnover:3571,maxbet:5,
+      chips:["25× bonus"],sub:"Deposit $95 → max the $143 bonus.",
+      why:"25× on bonus only ($143) ⇒ ~$125 cost vs $143 bonus ⇒ +$18. Just inside the +EV line — slot RTP matters; verify it's ~96.5%.",
+      stop:"<b>Stop-win</b> at 100% WR. Because margin is thin, a low-RTP slot can flip this negative — stick to the highest-RTP eligible title.",
+      steps:["confirm","register","kyc","deposit","claim","wager","stopwin","withdraw","result"]},
+     {id:"m76",n:76,name:"I828",ev:11,risk:"Medium",rcls:"r2",
+      bonusTxt:"100% up to 3,000 THB (~$86) · 25× bonus",deposit:86,turnover:2143,maxbet:5,
+      chips:["25× bonus"],sub:"Smaller, but cleanly positive.",
+      why:"25× on $86 bonus ⇒ ~$75 cost vs $86 ⇒ +$11. Lower stake, lower variance — a good confidence-builder clear.",
+      stop:"<b>Stop-win</b> at 100%. <b>Stop-loss</b> = the $86 deposit, no chasing.",
+      steps:["confirm","register","kyc","deposit","claim","wager","stopwin","withdraw","result"]},
+     {id:"m74",n:74,name:"Huc99",ev:0,risk:"Verify",rcls:"r2",verify:true,
+      bonusTxt:"100% register / free-trial bonus · 10× wagering",deposit:0,turnover:0,maxbet:5,
+      chips:["10× wagering","VERIFY"],sub:"Lowest WR of all — if it's a no-deposit trial, it's pure +EV.",
+      why:"10× wagering is the lowest in your whole list. If this is a genuine no-deposit / free-trial bonus, the EV is strongly positive with zero deposit risk. Confirm the exact terms & amount first.",
+      stop:"If no-deposit: <b>nothing to lose</b> — clear the 10× and withdraw. If it requires a deposit, treat like a Tier-2 clear with stop-loss.",
+      steps:["confirm","register","kyc","claim","wager","stopwin","withdraw","result"]},
+   ]},
+
+  {id:"t3",name:"Tier 3 — Parachute (Non-Sticky)",tag:"Deposit-safe · high variance",tagcls:"var",
+   desc:"Non-sticky 'parachute' bonuses. The WR is too high to clear flat, BUT your deposit is recoverable — you only ever risk the bonus phase. <b>Our play: bet the cash to double on baccarat (lowest edge ~1.06%), then clear any bonus phase on slots (100% weight).</b> Optional, high-variance upside.",
+   missions:[
+     {id:"m13",n:13,name:"Lilibet",ev:18,risk:"High variance",rcls:"r3",
+      bonusTxt:"100% up to 15,000 THB + 500 FS · 30× (D+B), non-sticky",deposit:100,turnover:0,maxbet:5,
+      chips:["Non-sticky","Parachute"],sub:"Lowest-WR non-sticky — best parachute play.",
+      why:"Non-sticky + 30× is the friendliest parachute here. Deposit recoverable; bold-play your cash to a target. Expected upside positive, but swingy.",
+      stop:"<b>Set a target & a walk-away</b> before you start. Hit target → withdraw. Bust cash → grind the bonus or quit. Never top up.",
+      steps:["confirm","register","kyc","deposit","claim","nsplay","nswithdraw","result"]},
+     {id:"m7",n:7,name:"Lucky Spins",ev:12,risk:"High variance",rcls:"r3",
+      bonusTxt:"100% up to 10,000 THB + 100 FS · 35× non-sticky (cash-reload)",deposit:100,turnover:0,maxbet:5,
+      chips:["Non-sticky"],sub:"Wager your own cash first; bonus as backup.",
+      why:"Cash-reload / non-sticky: your money plays first and is withdrawable. Positive only with disciplined bold-play; otherwise just take your deposit back.",
+      stop:"Same parachute rules: pre-set target, no chasing, deposit comes back if you quit early.",
+      steps:["confirm","register","kyc","deposit","claim","nsplay","nswithdraw","result"]},
+     {id:"m22",n:22,name:"Bitstarz",ev:10,risk:"High variance",rcls:"r3",
+      bonusTxt:"100% up to 1 BTC + 180 FS · 40× non-sticky",deposit:100,turnover:0,maxbet:5,
+      chips:["Non-sticky","Parachute"],sub:"Reputable crypto casino, deposit-safe bonus.",
+      why:"40× is high, so flat-clearing is −EV — but non-sticky means you risk only the bonus. Treat as a free shot on top of a recoverable deposit.",
+      stop:"Pre-set target. If you don't fancy the bold-play, just withdraw the deposit — you lose nothing.",
+      steps:["confirm","register","kyc","deposit","claim","nsplay","nswithdraw","result"]},
+     {id:"m86",n:86,name:"Coins.game",ev:18,risk:"High variance",rcls:"r3",
+      bonusTxt:"100% up to $1,000, NON-STICKY · 30× bonus (deposit recoverable)",deposit:100,turnover:0,maxbet:5,
+      chips:["Non-sticky","Parachute","30×"],sub:"Confirmed non-sticky — deposit-safe, lowest-WR parachute here.",
+      why:"Confirmed NON-STICKY: your deposit stays withdrawable and only the bonus is at risk. 30× is the friendliest parachute WR in the campaign (ties Lilibet). Bet your cash to double on baccarat (~1.06% edge); hit target → withdraw. Bust the cash → the bonus deploys, clear it on slots.",
+      stop:"Pre-set a target and a walk-away first. Hit target → withdraw. Don't fancy the bold-play? Just pull your deposit — you lose nothing. Never top up to chase.",
+      steps:["confirm","register","kyc","deposit","claim","nsplay","nswithdraw","result"]},
+   ]},
+
+  {id:"traps",name:"⛔ The Trap Zone",tag:"LOCKED · −EV",tagcls:"trap",
+   desc:"The biggest, flashiest bonuses in your list. They are permanently locked because the math is brutal — the headline % is bait. Click any to see exactly how much it's projected to LOSE. Resisting them is itself an achievement.",
+   trap:true,
+   missions:[
+     {id:"x2", n:2, name:"BC.Game",ev:-541,bonusTxt:"Up to 470% / $1,600 + 400 FS",wr:"45× bonus",turnover:42300,risk:"Trap",rcls:"r3",chips:["470% bait","45×"],sub:"Biggest headline = worst EV."},
+     {id:"x59",n:59,name:"BetGoat",ev:-416,bonusTxt:"380% up to $4,500",wr:"35× (D+B)",turnover:33600,risk:"Trap",rcls:"r3",chips:["380% bait","35× D+B"],sub:""},
+     {id:"x37",n:37,name:"Westace",ev:-403,bonusTxt:"350% up to 550,000 THB",wr:"35× (D+B)",turnover:31500,risk:"Trap",rcls:"r3",chips:["350% bait","35× D+B"],sub:""},
+     {id:"x1", n:1, name:"Stake",ev:-160,bonusTxt:"200% up to $2,000",wr:"40× bonus",turnover:16000,risk:"Trap",rcls:"r3",chips:["200% bait","40×"],sub:"Great brand, terrible welcome WR."},
+     {id:"x5", n:5, name:"Rabona",ev:-290,bonusTxt:"100% up to 5,000 NOK + 200 FS",wr:"35× (D+B)",turnover:14000,risk:"Trap",rcls:"r3",chips:["35× D+B"],sub:"The default 35×(D+B) trap — 30+ sites share it."},
+   ]},
+];
+
+/* ---- academy quiz ---- */
+const QUIZ = {
+  q:"A casino offers <b>300% up to $3,000</b> with <b>40× wagering on the bonus</b>, cleared on a 96.5% slot (house edge 3.5%). Is it +EV?",
+  opts:[
+    {t:"Yes — 300% is a huge free bonus!",ok:false},
+    {t:"No — 40 × 3.5% = 1.4 > 1, so you lose ~40% of the bonus clearing it",ok:true},
+    {t:"Can't tell without knowing the deposit size",ok:false},
+  ],
+  ex:"The rule: a match bonus is +EV only if <b>wagerX × house-edge &lt; 1</b>. Here 40 × 0.035 = 1.40, so expected clearing cost is 140% of the bonus — a guaranteed long-run loss. The headline 300% is irrelevant. THIS is why the campaign skips them."
+};
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const BADGE_DEFS=[
+  {id:"grad",emo:"🎓",name:"Graduate — finished the Academy"},
+  {id:"safety",emo:"🛡️",name:"Safety First — cleared a Pure-Value mission"},
+  {id:"clear",emo:"💎",name:"First Clear — completed a low-WR clear"},
+  {id:"cashrun",emo:"🚪",name:"Cash & Run — withdrew the instant WR hit 100%"},
+  {id:"ice",emo:"🧊",name:"Ice Veins — logged a loss without chasing"},
+  {id:"chute",emo:"🪂",name:"Parachutist — completed a non-sticky mission"},
+  {id:"dodger",emo:"🚫",name:"Trap Dodger — inspected a trap and walked away"},
+  {id:"crown",emo:"👑",name:"Campaign Complete — finished every recommended mission"},
+];
+function award(id){if(!Q.badges.includes(id)){Q.badges.push(id);addXP(25);toast("🏅 Badge unlocked: "+BADGE_DEFS.find(b=>b.id===id).name,true);}}
+function addXP(n){Q.xp+=n;save();renderHUD();}
+function level(){return Math.floor(Q.xp/100)+1;}
+const RANKS=["Rookie","Scout","Hunter","Sharp","Strategist","Bonus Master"];
+
+function renderHUD(){
+  const lv=level(),inLv=Q.xp%100;
+  document.getElementById('xpfill').style.width=inLv+"%";
+  document.getElementById('xpLabel').textContent=Q.xp+" / "+(lv*100)+" XP";
+  document.getElementById('lvlLabel').textContent="Level "+lv+" · "+(RANKS[Math.min(lv-1,RANKS.length-1)]);
+  // bankroll: actual = START + sum logged results; projected = START + sum EV of completed +EV missions
+  let actual=START, ev=0;
+  TIERS.forEach(t=>t.missions.forEach(m=>{
+    const p=Q.prog[m.id];
+    if(Q.done.includes(m.id)){ if(m.ev>0) ev+=m.ev;
+      if(p&&p.result!=null) actual+=Number(p.result); else if(m.ev>0) actual+=m.ev; }
+  }));
+  if(typeof PL!=='undefined' && PL.entries && PL.entries.length){
+    actual = START + PL.entries.reduce((s,e)=>s+((+e.withdrawn||0)-(+e.deposit||0)),0); }
+  const aEl=document.getElementById('bankActual');aEl.textContent="$"+Math.round(actual);
+  aEl.className="v "+(actual>=START?"pos":"neg");
+  document.getElementById('bankProj').textContent="$"+Math.round(START+ev);
+  document.getElementById('evCap').textContent=(ev>=0?"+$":"-$")+Math.abs(Math.round(ev));
+  const br=document.getElementById('badgeRow');
+  br.innerHTML=BADGE_DEFS.map(b=>`<div class="badge ${Q.badges.includes(b.id)?'':'locked'}">${b.emo}<span class="tip">${b.name}</span></div>`).join("");
+}
+
+function tierUnlocked(t){
+  if(t.id==="academy") return true;
+  if(t.id==="traps") return false; // never "unlocked" (educational only)
+  if(!Q.done.includes("academy")) return false;
+  if(t.id==="t1") return true;
+  if(t.id==="t2") return TIERS.find(x=>x.id==="t1").missions.some(m=>Q.done.includes(m.id));
+  if(t.id==="t3") return TIERS.find(x=>x.id==="t2").missions.some(m=>Q.done.includes(m.id));
+  return true;
+}
+function missionDone(m){ if(m.academy) return Q.done.includes(m.id);
+  const p=prog(m.id); return m.steps && m.steps.every(s=>p.steps.includes(s)); }
+
+function render(){
+  const root=document.getElementById('campaign');
+  root.innerHTML=TIERS.map(t=>{
+    const unlocked=tierUnlocked(t);
+    const cards=t.missions.map(m=>missionCard(m,t,unlocked)).join("");
+    return `<section class="tier ${(!unlocked&&!t.trap)?'locked':''}">
+      <div class="tier-h"><h2>${t.name}</h2><span class="tag ${t.tagcls}">${t.tag}</span></div>
+      <p class="tier-desc">${t.desc}</p>
+      ${(!unlocked&&!t.trap)?`<div class="lockmsg">🔒 Complete the previous tier to unlock.</div>`:""}
+      <div class="grid">${cards}</div>
+    </section>`;
+  }).join("");
+  renderHUD();
+}
+
+function missionCard(m,t,unlocked){
+  const done=Q.done.includes(m.id);
+  const p=Q.prog[m.id];
+  const total=m.steps?m.steps.length:1;
+  const filled=p?p.steps.length:0;
+  const pct=m.academy?(done?100:0):Math.round(filled/total*100);
+  const evTxt = m.academy?"":(m.ev>0?`<span style="color:var(--good)">+$${m.ev}</span>`:(m.ev<0?`<span style="color:var(--bad)">−$${Math.abs(m.ev)}</span>`:`<span style="color:var(--muted)">+EV*</span>`));
+  let foot;
+  if(t.trap) foot=`<button class="btn full" data-trap="${m.id}">🔍 Why it's a trap</button>`;
+  else if(m.academy) foot=`<button class="btn primary full" data-open="${m.id}">${done?'↻ Review lesson':'▶ Start lesson'}</button>`;
+  else if(!unlocked) foot=`<button class="btn full" disabled>🔒 Locked</button>`;
+  else foot=`<button class="btn ${done?'good':'primary'} full" data-open="${m.id}">${done?'✓ Completed — review':'▶ Open mission'}</button>`;
+  return `<div class="m ${done?'done':''} ${t.trap?'trap':''}">
+    <div class="m-head"><div class="m-top">
+      <div><div class="m-name">${m.name} ${done?'<span style="color:var(--good)">✓</span>':''}</div>
+      ${m.n?`<span class="m-num">#${m.n} in tracker</span>`:''}</div>
+      <div class="m-ev">${evTxt}</div></div>
+      <div class="m-sub">${m.sub||''}</div>
+      <div class="m-chips">${(m.chips||[]).map(c=>`<span class="mc ${m.rcls||''}">${c}</span>`).join("")}
+        ${m.risk&&!t.trap&&!m.academy?`<span class="mc">⚠ ${m.risk}</span>`:''}</div>
+    </div>
+    <div class="m-body"><div class="m-prog"><i style="width:${pct}%"></i></div>
+      <div style="font-size:11px;color:var(--muted)">${m.academy?(done?'Lesson complete':'Lesson'):filled+' / '+total+' steps'}</div>
+    </div>
+    <div class="m-foot">${foot}</div></div>`;
+}
+
+/* ============================================================
+   MISSION MODAL
+   ============================================================ */
+let CUR=null;
+function findMission(id){for(const t of TIERS){const m=t.missions.find(x=>x.id===id);if(m)return{m,t};}return null;}
+
+function openMission(id){
+  const {m,t}=findMission(id); CUR={m,t};
+  const modal=document.getElementById('modal');
+  if(m.academy){ modal.innerHTML=academyHTML(); document.getElementById('ovl').classList.add('on'); bindAcademy(); return; }
+  const p=prog(m.id);
+  const steps=m.steps.map((sid,i)=>{
+    const def=S[sid](m);
+    const sdone=p.steps.includes(sid);
+    const prevDone=i===0||p.steps.includes(m.steps[i-1]);
+    return stepHTML(def,sdone,prevDone,m,p);
+  }).join("");
+  modal.innerHTML=`<div class="modal-h"><div><h3>${m.name} ${m.n?`<span style="font-size:12px;color:var(--muted)">#${m.n}</span>`:''}</h3>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">${m.bonusTxt||''}</div></div>
+      <span class="x" data-close>×</span></div>
+    <div class="modal-b">
+      <div class="why">💡 <b>Why this mission:</b> ${m.why||''}</div>
+      <div class="stoprule">🛑 <b>Stop-rules:</b> ${m.stop||''}</div>
+      <div class="stopwin" id="stopwinBanner"><h4>🎉 Wagering complete — WITHDRAW NOW</h4>
+        <p>The edge is spent. Click the withdraw step. Do NOT keep playing.</p></div>
+      ${steps}
+    </div>`;
+  document.getElementById('ovl').classList.add('on');
+  refreshStopwin();
+}
+
+function stepHTML(def,done,prevDone,m,p){
+  const locked=!done&&!prevDone;
+  let extra="";
+  if(def.type==="deposit"){
+    extra=`<div class="turn-row"><input class="num" type="number" id="depInput" placeholder="$ ${def.rec}" value="${p.deposit??''}">
+      <button class="btn sm" id="depSet">Set deposit</button>
+      <span style="font-size:11px;color:var(--muted)">recommended $${def.rec}</span></div>`;
+  }
+  if(def.type==="wager"){
+    const cur=p.turnover||0, pc=def.target>0?Math.min(100,Math.round(cur/def.target*100)):0;
+    const spins=def.target>0?Math.ceil(def.target/def.maxbet):0;
+    extra=`<div class="miniprog"><i style="width:${pc}%"></i></div>
+      <div class="turn-row"><input class="num" type="number" id="turnInput" placeholder="$ so far" value="${cur||''}">
+        <button class="btn sm" id="turnSet">Update</button>
+        <button class="btn sm" id="turnMax">+ $${def.maxbet}</button>
+        <span style="font-size:11px;color:var(--muted)">${cur.toLocaleString()} / ${def.target.toLocaleString()} · ≈${spins} spins @ $${def.maxbet}</span></div>`;
+  }
+  if(def.type==="result"){
+    extra=`<div class="turn-row"><input class="num" type="number" id="resInput" placeholder="net $ (e.g. ${def.expect})" value="${p.result??''}">
+      <button class="btn sm good" id="resSet">Log & finish</button></div>`;
+  }
+  if(def.type==="stopwin"){
+    extra=`<div style="font-size:11.5px;color:var(--gold);margin-top:6px">Unlocks when wagering hits 100%. Tempted to keep going? <a href="#" id="keepPlaying">…keep playing?</a></div>`;
+  }
+  return `<div class="step ${done?'done':''} ${locked?'locked':''}" data-step="${def.id}">
+    <div class="box" ${locked?'':`data-toggle="${def.id}"`}>${done?'✓':''}</div>
+    <div class="body"><div class="lab">${def.lab}</div><div class="det">${def.det}</div>${extra}</div></div>`;
+}
+
+function refreshStopwin(){
+  if(!CUR||!CUR.m.steps) return;
+  const p=prog(CUR.m.id);
+  const hasWager=CUR.m.steps.includes("wager");
+  const wagerDone=p.steps.includes("wager");
+  const b=document.getElementById('stopwinBanner');
+  if(b) b.classList.toggle('on', hasWager && wagerDone && !p.steps.includes("withdraw"));
+}
+
+/* step interactions (event delegation on modal) */
+document.getElementById('modal').addEventListener('click',e=>{
+  if(e.target.matches('[data-close]')){closeModal();return;}
+  const tog=e.target.closest('[data-toggle]');
+  if(tog){toggleStep(tog.getAttribute('data-toggle'));return;}
+  if(e.target.id==='depSet'){const v=document.getElementById('depInput').value;prog(CUR.m.id).deposit=v;save();
+      syncTracker(CUR.m.n,{status:"deposited",deposit:v});completeStep("deposit");return;}
+  if(e.target.id==='turnSet'||e.target.id==='turnMax'){
+      const def=S.wager(CUR.m);const p=prog(CUR.m.id);
+      if(e.target.id==='turnMax') p.turnover=(p.turnover||0)+def.maxbet;
+      else p.turnover=Number(document.getElementById('turnInput').value||0);
+      if(p.turnover>=def.target){p.turnover=def.target;} save();
+      syncTracker(CUR.m.n,{wager:String(p.turnover)});
+      if(p.turnover>=def.target) completeStep("wager"); else reopen();
+      return;}
+  if(e.target.id==='resSet'){const v=Number(document.getElementById('resInput').value||0);
+      const p=prog(CUR.m.id);p.result=v;save();syncTracker(CUR.m.n,{result:String(v)});
+      if(v<0) award("ice");
+      completeStep(CUR.m.steps.includes("result")?"result":"collect");return;}
+  if(e.target.id==='keepPlaying'){e.preventDefault();keepPlayingWarn();return;}
+});
+
+function toggleStep(sid){
+  const p=prog(CUR.m.id);
+  if(p.steps.includes(sid)) return; // forward-only for simplicity
+  // steps needing input shouldn't toggle by checkbox
+  if(["deposit","wager","result","collect"].includes(sid)){toast("Use the input/button for this step.");return;}
+  completeStep(sid);
+}
+function completeStep(sid){
+  const m=CUR.m,p=prog(m.id);
+  if(!p.steps.includes(sid)){p.steps.push(sid);addXP(10);
+    const def=S[sid]?S[sid](m):null;
+    if(def&&def.sync){const patch={...def.sync};if(patch.date==="today")patch.date=new Date().toISOString().slice(0,10);syncTracker(m.n,patch);}
+    if(sid==="withdraw"&&m.steps.includes("stopwin")) award("cashrun");
+  }
+  save();
+  // mission completion
+  if(missionDone(m)&&!Q.done.includes(m.id)){
+    Q.done.push(m.id);addXP(50);
+    if(CUR.t.id==="t1") award("safety");
+    if(CUR.t.id==="t2") award("clear");
+    if(CUR.t.id==="t3") award("chute");
+    toast("✅ Mission complete: "+m.name+"  (+50 XP)",true);
+    checkCrown();
+  }
+  reopen();
+}
+function reopen(){const id=CUR.m.id;openMission(id);render();}
+function closeModal(){document.getElementById('ovl').classList.remove('on');CUR=null;render();}
+
+function keepPlayingWarn(){
+  const modal=document.getElementById('modal');
+  const o=modal.innerHTML;
+  modal.insertAdjacentHTML('afterbegin',`<div id="warnFloat" style="position:sticky;top:0;z-index:5"></div>`);
+  toast("⚠ Every spin past 100% WR is pure −EV — the edge is gone.",true);
+}
+
+function checkCrown(){
+  const need=[]; TIERS.forEach(t=>{if(["t1","t2","t3"].includes(t.id))t.missions.forEach(m=>{if(!m.verify||m.id!=="m74")need.push(m.id);});});
+  // crown when academy + at least the core +EV missions done (We88, MS.Slot, I828 + one tier1 + one tier3)
+  const core=["academy","m52","m75","m76","m77","m13"];
+  if(core.every(id=>Q.done.includes(id))) award("crown");
+}
+
+/* ---- trap inspector ---- */
+function openTrap(id){
+  const {m}=findMission(id);
+  if(!Q.seenTraps.includes(id)){Q.seenTraps.push(id);save();}
+  award("dodger");
+  const D=Math.round(m.turnover*0.035);
+  const modal=document.getElementById('modal');
+  modal.innerHTML=`<div class="modal-h"><div><h3>⛔ ${m.name} <span style="font-size:12px;color:var(--muted)">#${m.n}</span></h3>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">${m.bonusTxt}</div></div><span class="x" data-close>×</span></div>
+    <div class="modal-b">
+      <div class="stoprule">🎣 This is the bait. Big % + big wagering = big loss. Here's the math on a $200 deposit:</div>
+      <div class="trap-math">offer        : ${m.bonusTxt}
+wagering     : ${m.wr}
+turnover req : $${m.turnover.toLocaleString()}
+house edge   : 3.5%  (96.5% slot)
+expected cost: $${m.turnover.toLocaleString()} × 0.035 = $${D.toLocaleString()}
+bonus value  : far less than the cost
+─────────────────────────────────────
+PROJECTED RESULT: −$${Math.abs(m.ev)}  (you lose your bankroll)</div>
+      <div class="why">✅ <b>The campaign skips this on purpose.</b> You just earned the 🚫 <b>Trap Dodger</b> badge for looking before leaping. Walk away and stick to Tiers 1–2.</div>
+      <button class="btn primary full" data-close>Got it — I'll skip it</button>
+    </div>`;
+  document.getElementById('ovl').classList.add('on');
+  render();
+}
+
+/* ---- academy ---- */
+function academyHTML(){
+  const done=Q.done.includes("academy");
+  return `<div class="modal-h"><div><h3>🎓 The One Rule</h3>
+    <div style="font-size:12px;color:var(--muted);margin-top:3px">The whole game in 60 seconds</div></div><span class="x" data-close>×</span></div>
+    <div class="modal-b">
+      <div class="why">Every casino game loses money long-term (the <b>house edge</b>). For a new player the only real edge is the <b>welcome bonus</b> — but it's locked behind <b>wagering (WR)</b>. The bonus is worth taking only if:
+        <div class="trap-math" style="color:#bdf5d6;border-color:#256047;background:#10271c">WR × house-edge  &lt;  1
+
+slot edge ≈ 3.5%  →  take it only if WR ≲ 28× (bonus)  or ≲ 14× (Dep+Bonus)</div>
+        That's it. Big headline %? Irrelevant. A 470% bonus at 45× WR loses money; a boring 100% at 12× makes money.</div>
+      <div class="stoprule">🛑 The 3 stop-rules this game enforces for you:
+        <br>1. <b>Stop-loss</b> — deposit busts before WR? Walk. Never redeposit to chase.
+        <br>2. <b>Stop-win</b> — WR hits 100%? Withdraw instantly. Every spin after is −EV.
+        <br>3. <b>Budget</b> — only ever stake your planned amount; bonuses are not a reason to deposit more.</div>
+      <h4 style="margin:16px 0 4px">Quick check ${done?'<span style="color:var(--good)">✓ passed</span>':''}</h4>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 4px">${QUIZ.q}</p>
+      <div class="quiz" id="quiz">${QUIZ.opts.map((o,i)=>`<div class="opt" data-opt="${i}">${o.t}</div>`).join("")}</div>
+      <div id="quizEx"></div>
+    </div>`;
+}
+function bindAcademy(){
+  const quiz=document.getElementById('quiz');
+  if(Q.done.includes("academy")){document.getElementById('quizEx').innerHTML=`<div class="why">${QUIZ.ex}</div>`;}
+  quiz&&quiz.addEventListener('click',e=>{
+    const o=e.target.closest('[data-opt]');if(!o)return;
+    const i=+o.getAttribute('data-opt');const correct=QUIZ.opts[i].ok;
+    [...quiz.children].forEach(c=>c.classList.remove('right','wrong'));
+    o.classList.add(correct?'right':'wrong');
+    document.getElementById('quizEx').innerHTML=`<div class="why">${QUIZ.ex}</div>`;
+    if(correct&&!Q.done.includes("academy")){Q.done.push("academy");addXP(50);award("grad");toast("🎓 Academy passed — campaign unlocked! (+50 XP)",true);setTimeout(()=>{closeModal();},900);}
+  });
+}
+
+/* ---- global clicks ---- */
+document.getElementById('campaign').addEventListener('click',e=>{
+  const op=e.target.closest('[data-open]'); if(op){openMission(op.getAttribute('data-open'));return;}
+  const tr=e.target.closest('[data-trap]'); if(tr){openTrap(tr.getAttribute('data-trap'));return;}
+});
+document.getElementById('ovl').addEventListener('click',e=>{if(e.target.id==='ovl')closeModal();});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  if(confirm("Reset campaign progress? (Your betTrackerV1 data is NOT touched.)")){Q=fresh();save();render();toast("Campaign reset.");}
+});
+document.getElementById('howBtn').addEventListener('click',()=>openMission("academy"));
+
+/* ---- toast ---- */
+let tT;
+function toast(msg,gold){const el=document.getElementById('toast');el.textContent=msg;el.className="toast on"+(gold?" gold":"");clearTimeout(tT);tT=setTimeout(()=>el.className="toast"+(gold?" gold":""),2600);}
+
+/* ============================================================
+   PAYOUT LOG — track real results over time (projected vs realized)
+   Persists to its own key; never overwrites quest/tracker data.
+   ============================================================ */
+const PL_KEY="payoutLogV1";
+let PL = plLoad();
+let editId=null;
+const ST=['in-progress','cleared','busted','withdrawn'];
+function plLoad(){try{return JSON.parse(localStorage.getItem(PL_KEY))||{entries:[]}}catch(e){return{entries:[]}}}
+function plSave(){localStorage.setItem(PL_KEY,JSON.stringify(PL));cloudPush();}
+function num(v){return parseFloat(v)||0;}
+function today(){return new Date().toISOString().slice(0,10);}
+function campaignCasinos(){const l=[];TIERS.forEach(t=>{if(t.trap||t.id==='academy')return;t.missions.forEach(m=>l.push({name:m.name,n:m.n,ev:m.ev}));});return l;}
+function evForName(name){const c=campaignCasinos().find(x=>x.name.toLowerCase()===(name||'').toLowerCase());return c?c.ev:0;}
+function nForName(name){const c=campaignCasinos().find(x=>x.name.toLowerCase()===(name||'').toLowerCase());return c?c.n:null;}
+function projOf(e){return (e.projEV!=null&&e.projEV!=='')?+e.projEV:evForName(e.name);}
+function netOf(e){return (+e.withdrawn||0)-(+e.deposit||0);}
+
+function setView(v){
+  document.getElementById('campaign').style.display=v==='campaign'?'':'none';
+  document.getElementById('paylog').style.display=v==='paylog'?'':'none';
+  document.querySelectorAll('#viewSeg button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  const pb=document.getElementById('premiumBar'); if(pb) pb.style.display=(v==='campaign')?'':'none';
+  if(v==='paylog') renderPaylog(); else render();
+}
+document.getElementById('viewSeg').addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(b)setView(b.dataset.view);});
+
+function plCard(k,v,cls){return `<div class="pl-card"><div class="k">${k}</div><div class="v ${cls||''}">${v}</div></div>`;}
+
+function chartSVG(){
+  const W=760,Hh=190,padL=46,padR=14,padT=14,padB=10;
+  const ent=[...PL.entries].sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.id>b.id?1:-1));
+  let ca=START,cp=START; const pts=[{a:START,p:START}];
+  ent.forEach(e=>{ca+=netOf(e);cp+=projOf(e);pts.push({a:ca,p:cp});});
+  const n=pts.length, vals=pts.flatMap(p=>[p.a,p.p]);
+  let mn=Math.min(...vals),mx=Math.max(...vals); if(mn===mx){mn-=10;mx+=10;}
+  const pd=(mx-mn)*0.12||10; mn-=pd; mx+=pd;
+  const xw=W-padL-padR, yh=Hh-padT-padB;
+  const X=i=> padL+(n<=1?xw/2:(i/(n-1))*xw);
+  const Y=v=> padT+(1-(v-mn)/(mx-mn))*yh;
+  const line=k=>pts.map((p,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(p[k]).toFixed(1)}`).join(' ');
+  const ticks=[mn,(mn+mx)/2,mx].map(v=>`<line x1="${padL}" y1="${Y(v).toFixed(1)}" x2="${W-padR}" y2="${Y(v).toFixed(1)}" stroke="#28314a" stroke-width="0.5"/><text x="6" y="${(Y(v)+4).toFixed(1)}" fill="#8794ad" font-size="10">$${Math.round(v)}</text>`).join('');
+  const dot=(k,col)=>`<circle cx="${X(n-1).toFixed(1)}" cy="${Y(pts[n-1][k]).toFixed(1)}" r="3.5" fill="${col}"/>`;
+  return `<svg viewBox="0 0 ${W} ${Hh}" width="100%" height="${Hh}" preserveAspectRatio="none" style="max-width:100%">
+    ${ticks}
+    <line x1="${padL}" y1="${Y(START).toFixed(1)}" x2="${W-padR}" y2="${Y(START).toFixed(1)}" stroke="#5b8cff" stroke-width="1" stroke-dasharray="4 4" opacity="0.55"/>
+    <path d="${line('p')}" fill="none" stroke="#ffd166" stroke-width="2"/>
+    <path d="${line('a')}" fill="none" stroke="#36d399" stroke-width="2.5"/>
+    ${dot('p','#ffd166')}${dot('a','#36d399')}
+  </svg>`;
+}
+
+function plTable(){
+  const rows=[...PL.entries].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.id>a.id?1:-1));
+  return `<table class="pl"><thead><tr><th>Date</th><th>Casino</th><th>Dep</th><th>Bonus</th><th>Turnover</th><th>Withdrawn</th><th>Net</th><th>Proj</th><th>Status</th><th>Notes</th><th></th></tr></thead><tbody>
+  ${rows.map(e=>{const net=netOf(e),pj=projOf(e);
+    return `<tr><td>${e.date||''}</td><td>${e.name||''}${e.n?` <span style="color:var(--muted);font-size:10px">#${e.n}</span>`:''}</td>
+      <td>$${+e.deposit||0}</td><td>$${+e.bonus||0}</td><td>$${(+e.turnover||0).toLocaleString()}</td><td>$${+e.withdrawn||0}</td>
+      <td class="${net>=0?'netpos':'netneg'}">${net>=0?'+':'−'}$${Math.abs(net)}</td>
+      <td style="color:var(--gold)">${pj>=0?'+':'−'}$${Math.abs(Math.round(pj))}</td>
+      <td><span class="tag-st">${e.status||'—'}</span></td>
+      <td style="color:var(--muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(e.notes||'').replace(/"/g,'&quot;')}">${e.notes||''}</td>
+      <td style="white-space:nowrap"><button class="iconbtn" data-edit="${e.id}" title="Edit">✎</button><button class="iconbtn" data-del="${e.id}" title="Delete">🗑</button></td></tr>`;}).join('')}
+  </tbody></table>`;
+}
+
+function fillForm(e){const g=id=>document.getElementById(id);
+  g('plDate').value=e.date||today();g('plName').value=e.name||'';g('plDep').value=e.deposit||'';g('plBon').value=e.bonus||'';
+  g('plTurn').value=e.turnover||'';g('plWd').value=e.withdrawn||'';g('plStatus').value=e.status||ST[0];
+  g('plProj').value=(e.projEV==null?'':e.projEV);g('plNotes').value=e.notes||'';
+  g('formTitle').textContent='✎ Edit session';g('plClear').style.display='';g('plAdd').textContent='Update session';
+}
+
+function renderPaylog(){
+  const root=document.getElementById('paylog'); const ent=PL.entries;
+  const dep=ent.reduce((s,e)=>s+(+e.deposit||0),0), wd=ent.reduce((s,e)=>s+(+e.withdrawn||0),0);
+  const net=wd-dep, proj=ent.reduce((s,e)=>s+projOf(e),0), variance=net-proj;
+  const wins=ent.filter(e=>netOf(e)>0).length, bank=START+net;
+  const dlist=campaignCasinos();
+  root.innerHTML=`<div class="pl-wrap">
+    <div class="pl-stats">
+      ${plCard('Bankroll now','$'+Math.round(bank), bank>=START?'pos':'neg')}
+      ${plCard('Realized net',(net>=0?'+$':'−$')+Math.abs(Math.round(net)), net>=0?'pos':'neg')}
+      ${plCard('Projected (EV)',(proj>=0?'+$':'−$')+Math.abs(Math.round(proj)),'gold')}
+      ${plCard('Variance / luck',(variance>=0?'+$':'−$')+Math.abs(Math.round(variance)), variance>=0?'pos':'neg')}
+      ${plCard('Deposited','$'+Math.round(dep),'')}
+      ${plCard('Withdrawn','$'+Math.round(wd),'')}
+      ${plCard('Sessions',ent.length+' · '+wins+'W','')}
+    </div>
+    <div class="panel"><h3>📈 Bankroll over time — projected vs realized</h3>
+      <div>${ent.length?chartSVG():'<div class="empty">Log a session below to see your curve build.</div>'}</div>
+      <div class="legend"><span><i style="background:#36d399"></i>Realized bankroll</span><span><i style="background:#ffd166"></i>Projected (EV)</span><span><i style="background:#5b8cff"></i>Start $${START}</span></div>
+    </div>
+    <div class="panel"><h3 id="formTitle">➕ Log a session</h3>
+      <div class="pl-form">
+        <div><label>Date</label><input class="field" type="date" id="plDate" value="${today()}"></div>
+        <div><label>Casino</label><input class="field" id="plName" list="plCasinos" placeholder="e.g. We88" autocomplete="off"><datalist id="plCasinos">${dlist.map(c=>`<option value="${c.name}"></option>`).join('')}</datalist></div>
+        <div><label>Deposit $</label><input class="field" type="number" id="plDep" placeholder="0"></div>
+        <div><label>Bonus $</label><input class="field" type="number" id="plBon" placeholder="0"></div>
+        <div><label>Turnover $</label><input class="field" type="number" id="plTurn" placeholder="0"></div>
+        <div><label>Withdrawn $</label><input class="field" type="number" id="plWd" placeholder="0"></div>
+        <div><label>Status</label><select class="field" id="plStatus">${ST.map(s=>`<option>${s}</option>`).join('')}</select></div>
+        <div><label>Projected EV $ <span style="opacity:.6">(auto)</span></label><input class="field" type="number" id="plProj" placeholder="auto"></div>
+        <div style="grid-column:1/-1"><label>Notes</label><input class="field" id="plNotes" placeholder="code used, slot, withdrawal method…"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:13px;flex-wrap:wrap">
+        <button class="btn good" id="plAdd">Save session</button>
+        <button class="btn" id="plClear" style="display:none">Cancel edit</button>
+        <button class="btn" id="plImport">⤓ Import completed campaign missions</button>
+        <button class="btn" id="plCsv">⤒ Export CSV</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:10px">Net = Withdrawn − Deposit. <b>Variance</b> shows how far luck has pushed you from expectation — over many sessions it should trend toward $0 if your reads are right.</div>
+    </div>
+    <div class="panel"><h3>📒 Sessions (${ent.length})</h3>${ent.length?plTable():'<div class="empty">No sessions logged yet.</div>'}</div>
+  </div>`;
+  if(editId){const e=ent.find(x=>x.id===editId);if(e)fillForm(e);}
+}
+
+function savePlForm(){
+  const g=id=>document.getElementById(id);
+  const name=g('plName').value.trim();
+  if(!name){toast('Enter a casino name.');return;}
+  const prev=editId?PL.entries.find(x=>x.id===editId):null;
+  const rec={id: editId||('e'+Date.now().toString(36)),
+    date:g('plDate').value||today(), name, n:nForName(name),
+    deposit:num(g('plDep').value), bonus:num(g('plBon').value), turnover:num(g('plTurn').value),
+    withdrawn:num(g('plWd').value), status:g('plStatus').value,
+    projEV: g('plProj').value===''?null:num(g('plProj').value), notes:g('plNotes').value.trim(),
+    missionId: prev?prev.missionId:undefined};
+  if(editId){PL.entries[PL.entries.findIndex(x=>x.id===editId)]=rec;editId=null;}
+  else PL.entries.push(rec);
+  plSave();
+  if(rec.n!=null) syncTracker(rec.n,{deposit:String(rec.deposit),result:String(netOf(rec)),status:'deposited'});
+  toast('✓ Session saved.',true); renderPaylog(); renderHUD();
+}
+
+function importCampaign(){
+  let added=0;
+  TIERS.forEach(t=>{if(t.trap||t.id==='academy')return;t.missions.forEach(m=>{
+    const p=Q.prog[m.id]; if(!Q.done.includes(m.id)||!p)return;
+    if(PL.entries.some(x=>x.missionId===m.id))return;
+    const result=(p.result!=null)?+p.result:(m.ev||0);
+    const d=(p.deposit!=null&&p.deposit!=='')?num(p.deposit):(m.deposit||0);
+    PL.entries.push({id:'e'+Date.now().toString(36)+Math.floor(Math.random()*1e4),date:today(),name:m.name,n:m.n,missionId:m.id,
+      deposit:d,bonus:0,turnover:p.turnover||0,withdrawn:d+result,status:'withdrawn',projEV:m.ev,notes:'imported from campaign'});
+    added++;});});
+  plSave(); renderPaylog(); renderHUD();
+  toast(added?('⤓ Imported '+added+' mission(s).'):'Nothing new to import.',true);
+}
+
+function exportPlCsv(){
+  const head=['date','casino','n','deposit','bonus','turnover','withdrawn','net','projEV','status','notes'];
+  const rows=PL.entries.map(e=>[e.date,e.name,e.n||'',+e.deposit||0,+e.bonus||0,+e.turnover||0,+e.withdrawn||0,netOf(e),projOf(e),e.status||'',(e.notes||'').replace(/[\n,]/g,' ')]);
+  const csv=[head.join(','),...rows.map(r=>r.join(','))].join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='payout-log.csv';a.click();
+}
+
+document.getElementById('paylog').addEventListener('click',e=>{
+  if(e.target.id==='plAdd'){savePlForm();return;}
+  if(e.target.id==='plClear'){editId=null;renderPaylog();return;}
+  if(e.target.id==='plImport'){importCampaign();return;}
+  if(e.target.id==='plCsv'){exportPlCsv();return;}
+  const ed=e.target.closest('[data-edit]'); if(ed){editId=ed.dataset.edit;renderPaylog();window.scrollTo({top:0,behavior:'smooth'});return;}
+  const dl=e.target.closest('[data-del]'); if(dl){if(confirm('Delete this session?')){PL.entries=PL.entries.filter(x=>x.id!==dl.dataset.del);if(editId===dl.dataset.del)editId=null;plSave();renderPaylog();renderHUD();}return;}
+});
+document.getElementById('paylog').addEventListener('change',e=>{
+  if(e.target.id==='plName'){const pj=document.getElementById('plProj');if(pj&&!pj.value)pj.value=evForName(e.target.value);}
+});
+
+/* ============ PREMIUM PREVIEW — expert last-25-bets ROI teaser ============
+   Reads real results from Supabase table `expert_bets` (public read) when present;
+   otherwise shows clearly-labelled SAMPLE data so the number is never a false claim. */
+const SAMPLE_BETS=[[2.1,1],[2.1,0],[2.0,1],[1.8,0],[2.4,1],[2.4,0],[1.9,1],[1.95,0],[2.6,1],[2.6,0],[2.0,1],[1.85,0],[2.2,1],[2.2,0],[1.8,1],[2.0,0],[2.5,1],[1.75,0],[1.9,1],[2.3,0],[2.1,1],[1.9,0],[2.0,1],[2.5,0],[2.1,1]].map(x=>({odds:x[0],won:!!x[1],stake:1}));
+
+function expertStats(bets){
+  let stake=0,ret=0,w=0,cum=0; const eq=[];
+  bets.forEach(b=>{const s=b.stake||1,o=+b.odds; stake+=s; const r=b.won?s*o:0; ret+=r; cum+=(r-s); eq.push(cum); if(b.won)w++;});
+  const profit=ret-stake;
+  return {n:bets.length,w,l:bets.length-w,profit,roi:stake?profit/stake*100:0,eq,avgOdds:bets.reduce((a,b)=>a+(+b.odds),0)/bets.length};
+}
+function sparkPremium(eq,w,h){
+  if(!eq||!eq.length) return "";
+  const pad=6,n=eq.length,mn=Math.min(0,...eq),mx=Math.max(0,...eq),rng=(mx-mn)||1;
+  const X=i=>pad+(n<=1?0:(i/(n-1))*(w-2*pad)), Y=v=>pad+(1-(v-mn)/rng)*(h-2*pad);
+  const pts=eq.map((v,i)=>X(i).toFixed(1)+","+Y(v).toFixed(1)).join(" ");
+  const col=eq[eq.length-1]>=0?"#36d399":"#f87171", y0=Y(0).toFixed(1);
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" preserveAspectRatio="none" style="max-width:100%">
+    <line x1="${pad}" y1="${y0}" x2="${w-pad}" y2="${y0}" stroke="#28314a" stroke-width="1" stroke-dasharray="3 3"/>
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2"/></svg>`;
+}
+async function renderPremium(){
+  const bar=document.getElementById('premiumBar'); if(!bar) return;
+  let bets=SAMPLE_BETS, live=false;
+  if(typeof AUTH_LIVE!=='undefined' && AUTH_LIVE && sb){
+    try{const {data}=await sb.from('expert_bets').select('odds,stake,won,ts').order('ts',{ascending:false}).limit(25);
+      if(data&&data.length){bets=data.map(x=>({odds:+x.odds,stake:+x.stake||1,won:!!x.won})); live=true;}}catch(e){}
+  }
+  const s=expertStats(bets); const roiTxt=(s.roi>=0?'+':'')+s.roi.toFixed(1)+'%';
+  bar.innerHTML=`<div class="premium">
+    <div style="flex:1;min-width:210px">
+      <span class="pm-tag">🔒 PREMIUM · Expert Tips</span>
+      <div class="pm-head">Last ${s.n} expert bets: <span class="pm-roi ${s.roi<0?'neg':''}">${roiTxt} ROI</span></div>
+      <div class="pm-sub">${s.w}W · ${s.l}L · ${(s.profit>=0?'+':'')}${s.profit.toFixed(1)}u · avg odds ${s.avgOdds.toFixed(2)}${live?'':' · <span class="pm-ill">sample data</span>'}</div>
+    </div>
+    ${sparkPremium(s.eq,180,46)}
+    <button class="btn primary" id="pmCta">Unlock Premium →</button>
+  </div>`;
+  const cta=document.getElementById('pmCta'); if(cta) cta.onclick=()=>premiumModal(s,live);
+}
+function premiumModal(s,live){
+  const modal=document.getElementById('modal'); const roiTxt=(s.roi>=0?'+':'')+s.roi.toFixed(1)+'%';
+  const opted=localStorage.getItem('bhPremiumInterest')==='1';
+  modal.innerHTML=`<div class="modal-h"><div><h3>👑 Bonus Hunter Premium</h3>
+    <div style="font-size:12px;color:var(--muted);margin-top:3px">Follow the engine's expert picks</div></div><span class="x" data-close>×</span></div>
+   <div class="modal-b">
+     <div class="pl-stats">
+       <div class="pl-card"><div class="k">Last ${s.n} bets ROI</div><div class="v ${s.roi<0?'neg':'pos'}">${roiTxt}</div></div>
+       <div class="pl-card"><div class="k">Record</div><div class="v">${s.w}–${s.l}</div></div>
+       <div class="pl-card"><div class="k">Profit (units)</div><div class="v ${s.profit<0?'neg':'pos'}">${(s.profit>=0?'+':'')}${s.profit.toFixed(1)}u</div></div>
+       <div class="pl-card"><div class="k">Avg odds</div><div class="v">${s.avgOdds.toFixed(2)}</div></div>
+     </div>
+     <div class="panel" style="margin-top:14px"><h3>Profit curve — last ${s.n} settled tips</h3>${sparkPremium(s.eq,680,150)}</div>
+     <div class="why" style="margin-top:14px">💎 <b>Premium unlocks:</b> the expert's live picks (the ones behind that ROI), the auto odds-scanner alerts, and best-bonus + best-odds matchups — so your cleared bonus funds go on +EV bets, not guesses.</div>
+     <div class="panel" style="filter:blur(4px);user-select:none;pointer-events:none;margin-top:10px">
+       <div style="font-size:13px">🔒 Today: Lazio v Inter Under 2.5 @ 1.95 · Muay Thai — Rodtang ML @ 1.80 · 3 more picks…</div></div>
+     ${live?'':'<div class="pm-sub" style="margin-top:10px">Figures shown are <span class="pm-ill">sample data</span> until live results are connected.</div>'}
+     <button class="btn good full" id="pmJoin" style="margin-top:14px">${opted?'✓ On the Premium list':'🔓 Join Premium — get early access'}</button>
+   </div>`;
+  const j=document.getElementById('pmJoin');
+  if(j) j.onclick=()=>{ localStorage.setItem('bhPremiumInterest','1');
+    if(typeof AUTH_LIVE!=='undefined' && AUTH_LIVE && sb && USER){ try{ sb.from('premium_interest').upsert({user_id:USER.id,ts:new Date().toISOString()}); }catch(e){} }
+    toast("On the Premium early-access list! 🎉",true); j.textContent="✓ On the Premium list"; };
+  document.getElementById('ovl').classList.add('on');
+}
+
+render();
+initAuth();
+renderPremium();
+</script>
+<!-- ===== i18n EN/TH (injected) ===== -->
+<style>
+#langSwitch{position:fixed;right:18px;bottom:18px;z-index:99999;display:flex;
+  background:rgba(18,23,35,.95);border:1px solid #2a3450;border-radius:999px;overflow:hidden;
+  box-shadow:0 10px 30px rgba(0,0,0,.5);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  font-family:"Segoe UI",Roboto,system-ui,Arial,sans-serif}
+#langSwitch button{-webkit-appearance:none;appearance:none;background:transparent;border:0;margin:0;
+  cursor:pointer;color:#9aa6c0;font-size:13.5px;font-weight:700;line-height:1;padding:10px 16px;
+  display:flex;align-items:center;gap:6px;transition:.15s}
+#langSwitch button:hover{color:#fff}
+#langSwitch button.active{background:linear-gradient(180deg,#5b8cff,#3f6fe0);color:#fff}
+#langSwitch .gl{font-size:15px}
+@media(max-width:540px){#langSwitch{right:10px;bottom:10px}#langSwitch button{padding:9px 13px;font-size:12.5px}}
+</style>
+<script>
+(function(){
+  var LK='siteLang', lang=localStorage.getItem(LK)||'en';
+  function buildSwitch(){
+    if(document.getElementById('langSwitch'))return;
+    var d=document.createElement('div');d.id='langSwitch';
+    d.innerHTML='<button type="button" data-l="en"><span class="gl">🌐</span>EN</button>'+
+                '<button type="button" data-l="th">ไทย</button>';
+    document.body.appendChild(d);
+    var bs=d.getElementsByTagName('button');
+    for(var i=0;i<bs.length;i++){(function(b){
+      if(b.getAttribute('data-l')===lang)b.className='active';
+      b.onclick=function(){var nl=b.getAttribute('data-l');if(nl===lang)return;
+        localStorage.setItem(LK,nl);location.reload();};
+    })(bs[i]);}
+  }
+  function ready(fn){if(document.body)fn();else document.addEventListener('DOMContentLoaded',fn);}
+  if(lang!=='th'){ready(buildSwitch);return;}
+  document.documentElement.lang='th';
+
+  function nrm(s){return s.replace(/\s+/g,' ').trim();}
+
+  /* === HELPER MAPS (used by PATTERNS) === */
+  var RANKS_TH={
+    "Rookie":"มือใหม่",
+    "Scout":"นักสำรวจ",
+    "Hunter":"นักล่า",
+    "Sharp":"มือโปร",
+    "Strategist":"นักวางกลยุทธ์",
+    "Bonus Master":"เซียนโบนัส"
+  };
+
+  /* === EXACT-MATCH PAIRS: [English, Thai] (Thai may contain HTML). Numbers literal. === */
+  var PAIRS=[
+    /* ---- title / header ---- */
+    [`Bonus Hunter — New Player Campaign`, `Bonus Hunter — แคมเปญผู้เล่นใหม่`],
+    [`New Player Campaign`, `แคมเปญผู้เล่นใหม่`],
+    [`Turn a $200 bankroll into the best realistic return by hunting only +EV bonuses in the right order. Every mission enforces the stop-rules for you. The big flashy bonuses are locked traps — you'll learn why. Progress auto-syncs to your Bonus & Registration Tracker.`,
+     `เปลี่ยนเงินทุน <b>$200</b> ให้เป็นผลตอบแทนที่ดีที่สุดตามความเป็นจริง ด้วยการล่า <b>เฉพาะโบนัสที่ +EV</b> ตามลำดับที่ถูกต้อง ทุกภารกิจบังคับใช้กฎหยุดให้คุณโดยอัตโนมัติ โบนัสก้อนใหญ่ที่ดูหวือหวาคือ <b>กับดักที่ถูกล็อก</b> — คุณจะได้เรียนรู้ว่าทำไม ความคืบหน้าจะซิงค์อัตโนมัติไปยัง <b>Bonus & Registration Tracker</b> ของคุณ`],
+
+    /* ---- top buttons / seg ---- */
+    [`🎯 Campaign`, `🎯 แคมเปญ`],
+    [`📒 Payout Log`, `📒 บันทึกการจ่ายเงิน`],
+    [`👤 Account`, `👤 บัญชี`],
+    [`🏟️ Sports →`, `🏟️ กีฬา →`],
+    [`❓ How EV works`, `❓ EV ทำงานอย่างไร`],
+    [`↺ Reset campaign`, `↺ รีเซ็ตแคมเปญ`],
+
+    /* ---- HUD ---- */
+    [`Bankroll (actual)`, `เงินทุน (จริง)`],
+    [`Projected (EV)`, `คาดการณ์ (EV)`],
+    [`EV captured`, `EV ที่เก็บได้`],
+
+    /* ---- auth overlay ---- */
+    [`👋 Welcome, Bonus Hunter`, `👋 ยินดีต้อนรับ Bonus Hunter`],
+    [`Save your campaign, payout log & XP`, `บันทึกแคมเปญ บันทึกการจ่ายเงิน และ XP ของคุณ`],
+    [`⚡ Quick login — one click, no email`, `⚡ เข้าสู่ระบบด่วน — คลิกเดียว ไม่ต้องใช้อีเมล`],
+    [`Use an email instead (syncs across devices)`, `ใช้อีเมลแทน (ซิงค์ข้ามอุปกรณ์)`],
+    [`email`, `อีเมล`],
+    [`password`, `รหัสผ่าน`],
+    [`Log in`, `เข้าสู่ระบบ`],
+    [`Create account`, `สร้างบัญชี`],
+    [`Play as guest →`, `เล่นแบบผู้เยี่ยมชม →`],
+    [`Connected to Supabase — your progress syncs across devices.`, `เชื่อมต่อกับ Supabase แล้ว — ความคืบหน้าของคุณจะซิงค์ข้ามอุปกรณ์`],
+    [`Demo mode: login saves a profile in THIS browser only. Add Supabase keys in the file for real cross-device accounts.`, `โหมดทดลอง: การเข้าสู่ระบบจะบันทึกโปรไฟล์ไว้ในเบราว์เซอร์นี้เท่านั้น เพิ่มคีย์ Supabase ในไฟล์เพื่อใช้บัญชีข้ามอุปกรณ์จริง`],
+    [`Enter email and password.`, `กรอกอีเมลและรหัสผ่าน`],
+    [`Account created — now click Log in.`, `สร้างบัญชีแล้ว — ตอนนี้คลิกเข้าสู่ระบบ`],
+    [`Login failed`, `เข้าสู่ระบบไม่สำเร็จ`],
+    [`Auth failed.`, `ยืนยันตัวตนไม่สำเร็จ`],
+
+    /* ---- toasts (fixed strings) ---- */
+    [`Signed out.`, `ออกจากระบบแล้ว`],
+    [`Campaign reset.`, `รีเซ็ตแคมเปญแล้ว`],
+    [`Use the input/button for this step.`, `ใช้ช่องกรอก/ปุ่มสำหรับขั้นตอนนี้`],
+    [`⚠ Every spin past 100% WR is pure −EV — the edge is gone.`, `⚠ ทุกการหมุนหลังจากเทิร์น 100% แล้วคือ −EV ล้วน ๆ — ความได้เปรียบหมดไปแล้ว`],
+    [`Enter a casino name.`, `กรอกชื่อคาสิโน`],
+    [`✓ Session saved.`, `✓ บันทึกเซสชันแล้ว`],
+    [`Nothing new to import.`, `ไม่มีรายการใหม่ให้นำเข้า`],
+
+    /* ---- step factory labels & details ---- */
+    [`Confirm the terms on the official site`, `ยืนยันเงื่อนไขบนเว็บไซต์ทางการ`],
+    [`Register your account`, `ลงทะเบียนบัญชีของคุณ`],
+    [`One account per brand, real details. Multi-accounting voids winnings.`, `หนึ่งบัญชีต่อหนึ่งแบรนด์ ใช้ข้อมูลจริง การเปิดหลายบัญชีจะทำให้เงินรางวัลเป็นโมฆะ`],
+    [`Verify (KYC) if required`, `ยืนยันตัวตน (KYC) หากจำเป็น`],
+    [`Do it BEFORE depositing where possible — unverified accounts are the #1 cause of blocked withdrawals. No-KYC crypto sites can skip this.`, `ทำ<b>ก่อน</b>ฝากเงินเมื่อทำได้ — บัญชีที่ยังไม่ยืนยันตัวตนเป็นสาเหตุอันดับ 1 ของการถูกบล็อกการถอนเงิน เว็บคริปโตที่ไม่ต้อง KYC สามารถข้ามขั้นตอนนี้ได้`],
+    [`Deposit the recommended amount`, `ฝากเงินตามจำนวนที่แนะนำ`],
+    [`Opt in / claim the bonus`, `เลือกรับ / เคลมโบนัส`],
+    [`STOP-WIN gate — withdraw the moment WR hits 100%`, `ด่านหยุดเมื่อชนะ — ถอนเงินทันทีที่เทิร์นถึง 100%`],
+    [`The +EV existed only DURING the clear. Every spin after is pure −EV. Withdraw now.`, `ค่า +EV มีอยู่<b>เฉพาะระหว่าง</b>การเคลียร์เทิร์นเท่านั้น ทุกการหมุนหลังจากนั้นคือ −EV ล้วน ๆ ถอนเงินเดี๋ยวนี้`],
+    [`Withdraw to your wallet`, `ถอนเงินเข้ากระเป๋าของคุณ`],
+    [`Cash out the full balance. Don't leave funds 'for next time'.`, `ถอนยอดคงเหลือทั้งหมด อย่าเหลือเงินไว้ 'สำหรับคราวหน้า'`],
+    [`Log your result`, `บันทึกผลลัพธ์ของคุณ`],
+    [`Activate cashback / rakeback`, `เปิดใช้งานแคชแบ็ก / เรคแบ็ก`],
+    [`No wagering trap here — the rebate just shrinks the house edge. Opt into the loyalty/rakeback scheme.`, `ไม่มีกับดักเทิร์นโอเวอร์ตรงนี้ — เงินคืนแค่ลดความได้เปรียบของเจ้ามือลง เลือกเข้าร่วมโปรแกรมสมาชิก/เรคแบ็ก`],
+    [`Play only within your set budget`, `เล่นภายในงบประมาณที่ตั้งไว้เท่านั้น`],
+    [`Set a session loss-limit first. Cashback softens losses; it is NOT a reason to deposit more.`, `ตั้งลิมิตขาดทุนของเซสชันก่อน แคชแบ็กช่วยลดการขาดทุน แต่<b>ไม่ใช่</b>เหตุผลให้ฝากเงินเพิ่ม`],
+    [`Collect the rebate & log result`, `รับเงินคืนและบันทึกผลลัพธ์`],
+    [`Cash → bet-to-double on BACCARAT, then clear on SLOTS`, `เงินสด → เดิมพันให้ได้สองเท่าที่<b>บาคาร่า</b> แล้วเคลียร์เทิร์นที่<b>สล็อต</b>`],
+    [`Withdraw deposit anytime / cash out winnings`, `ถอนเงินฝากได้ทุกเมื่อ / ถอนเงินที่ชนะ`],
+
+    /* ---- tiers ---- */
+    [`🎓 The Academy`, `🎓 สถาบันฝึก`],
+    [`START HERE`, `เริ่มที่นี่`],
+    [`One 60-second lesson + a quiz. This is the whole game in a nutshell — finish it to unlock the campaign.`, `บทเรียน 60 วินาที + แบบทดสอบ นี่คือสรุปทั้งเกมในย่อหน้าเดียว — ทำให้จบเพื่อปลดล็อกแคมเปญ`],
+    [`The One Rule`, `กฎข้อเดียว`],
+    [`Tutorial`, `บทเรียน`],
+    [`Why bonus size ≠ value.`, `ทำไมขนาดโบนัส ≠ คุณค่า`],
+
+    [`Tier 1 — Pure Value`, `เทียร์ 1 — คุณค่าล้วน ๆ`],
+    [`No wagering trap · safest`, `ไม่มีกับดักเทิร์นโอเวอร์ · ปลอดภัยที่สุด`],
+    [`Cashback & rakeback offers. There is NO clearing requirement — the rebate directly reduces the house edge, so you can't be trapped. Always harvest these first; they protect the bankroll that funds everything else.`, `ข้อเสนอแคชแบ็กและเรคแบ็ก <b>ไม่มี</b>เงื่อนไขเคลียร์เทิร์น — เงินคืนลดความได้เปรียบของเจ้ามือโดยตรง คุณจึงไม่มีทางติดกับดัก เก็บเกี่ยวพวกนี้ก่อนเสมอ มันช่วยปกป้องเงินทุนที่ใช้เล่นอย่างอื่นทั้งหมด`],
+
+    [`Rebate on losses, no wagering. Pure value.`, `เงินคืนจากการขาดทุน ไม่มีเทิร์น คุณค่าล้วน ๆ`],
+    [`No wagering requirement at all. A 10% cashback on net losses lowers your effective house edge directly — the rare offer that's +EV with zero clearing risk.`, `ไม่มีเงื่อนไขเทิร์นโอเวอร์เลย แคชแบ็ก 10% จากยอดขาดทุนสุทธิช่วยลดความได้เปรียบของเจ้ามือที่แท้จริงโดยตรง — ข้อเสนอหายากที่ +EV โดยไม่มีความเสี่ยงในการเคลียร์เทิร์น`],
+    [`Collect rakeback on schedule. Never deposit more just to 'earn more' rebate — the rebate is a fraction of losses, not free money.`, `รับเรคแบ็กตามกำหนด <b>อย่า</b>ฝากเงินเพิ่มเพียงเพื่อ 'รับเงินคืนเพิ่ม' — เงินคืนเป็นเพียงเศษเสี้ยวของการขาดทุน ไม่ใช่เงินฟรี`],
+
+    [`Bonus unlocks as cash rakeback as you play.`, `โบนัสปลดล็อกเป็นเรคแบ็กเงินสดตามที่คุณเล่น`],
+    [`The match isn't sticky — it's released incrementally as rakeback while you play. No giant turnover wall; you keep what releases even if you stop.`, `โบนัสจับคู่นี้ไม่ติดหนึบ — มันทยอยปล่อยออกมาเป็นเรคแบ็กขณะที่คุณเล่น ไม่มีกำแพงเทิร์นยักษ์ คุณเก็บส่วนที่ปล่อยออกมาไว้ได้แม้จะหยุดเล่น`],
+    [`Stop whenever you like — released rakeback is already yours. Don't chase the full match by overplaying.`, `หยุดเมื่อไรก็ได้ — เรคแบ็กที่ปล่อยออกมาแล้วเป็นของคุณ อย่าไล่ตามโบนัสจับคู่เต็มจำนวนด้วยการเล่นมากเกินไป`],
+
+    [`Rewards via cashback & loyalty, not a match.`, `รางวัลผ่านแคชแบ็กและสมาชิก ไม่ใช่โบนัสจับคู่`],
+    [`Value comes from a no-wager cashback/loyalty model rather than a trapped match bonus — so there's nothing to clear.`, `คุณค่ามาจากรูปแบบแคชแบ็ก/สมาชิกที่ไม่มีเทิร์น แทนที่จะเป็นโบนัสจับคู่ที่เป็นกับดัก — จึงไม่มีอะไรต้องเคลียร์`],
+    [`Treat loyalty perks as a small rebate. Budget first; the perks don't change the games' edge much.`, `มองสิทธิประโยชน์สมาชิกเป็นเงินคืนเล็กน้อย ตั้งงบก่อน สิทธิประโยชน์ไม่ได้เปลี่ยนความได้เปรียบของเกมมากนัก`],
+
+    [`Spin winnings are withdrawable instantly.`, `เงินที่ชนะจากการหมุนถอนได้ทันที`],
+    [`Free-spin winnings carry ZERO wagering — whatever you win is immediately cashable. Small but pure upside.`, `เงินที่ชนะจากฟรีสปินมีเทิร์น<b>ศูนย์</b> — ชนะเท่าไรก็ถอนได้ทันที กำไรเล็กแต่ล้วน ๆ`],
+    [`Take the spins, withdraw any winnings, done. No deposit chasing.`, `รับสปิน ถอนเงินที่ชนะ จบ ไม่ต้องไล่ฝากเงิน`],
+
+    [`Tier 2 — Low-WR Clears`, `เทียร์ 2 — เคลียร์เทิร์นต่ำ`],
+    [`The hard +EV · deposit at risk`, `+EV ของจริง · เงินฝากมีความเสี่ยง`],
+    [`100%-ish matches with LOW turnover (10–25×) — the only sticky bonuses whose math is positive on a 96.5% slot. Your deposit IS at risk to variance here, so do them only after Tier 1, one at a time, with strict stop-rules.`, `โบนัสจับคู่ราว 100% ที่เทิร์น<b>ต่ำ</b> (10–25×) — เป็นโบนัสติดหนึบเพียงชนิดเดียวที่คณิตศาสตร์เป็นบวกบนสล็อต 96.5% เงินฝากของคุณ<b>มี</b>ความเสี่ยงต่อความผันผวนตรงนี้ ดังนั้นทำหลังเทียร์ 1 เท่านั้น ทีละอัน พร้อมกฎหยุดที่เข้มงวด`],
+
+    [`Lowest WR in the list — confirm the casino cap.`, `เทิร์นต่ำสุดในรายการ — ยืนยันเพดานของคาสิโน`],
+    [`12× turnover on Dep+Bonus at h=3.5% ⇒ expected cost ≈ $168 vs a $200 bonus ⇒ +$32. The single best clear-style EV here — IF the 100%/$200 cap is real. Confirm before depositing.`, `เทิร์น 12× บนเงินฝาก+โบนัสที่ h=3.5% ⇒ ต้นทุนคาดการณ์ ≈ $168 เทียบกับโบนัส $200 ⇒ +$32 EV แบบเคลียร์เทิร์นที่ดีที่สุดที่นี่ — <b>หาก</b>เพดาน 100%/$200 เป็นจริง ยืนยันก่อนฝากเงิน`],
+    [`Deposit $143 → $143 bonus, clear $3,429.`, `ฝาก $143 → โบนัส $143 เคลียร์ $3,429`],
+    [`12× turnover on Dep+Bonus ($286 base) ⇒ ~$120 expected cost vs $143 bonus ⇒ +$23. Solid, well-defined +EV.`, `เทิร์น 12× บนเงินฝาก+โบนัส (ฐาน $286) ⇒ ต้นทุนคาดการณ์ ~$120 เทียบกับโบนัส $143 ⇒ +$23 เป็น +EV ที่มั่นคงและชัดเจน`],
+    [`Deposit $95 → max the $143 bonus.`, `ฝาก $95 → รับโบนัส $143 เต็มจำนวน`],
+    [`25× on bonus only ($143) ⇒ ~$125 cost vs $143 bonus ⇒ +$18. Just inside the +EV line — slot RTP matters; verify it's ~96.5%.`, `25× บนโบนัสเท่านั้น ($143) ⇒ ต้นทุน ~$125 เทียบกับโบนัส $143 ⇒ +$18 เฉียดเส้น +EV — RTP ของสล็อตสำคัญ ตรวจสอบให้แน่ใจว่า ~96.5%`],
+    [`Smaller, but cleanly positive.`, `เล็กกว่า แต่เป็นบวกอย่างชัดเจน`],
+    [`25× on $86 bonus ⇒ ~$75 cost vs $86 ⇒ +$11. Lower stake, lower variance — a good confidence-builder clear.`, `25× บนโบนัส $86 ⇒ ต้นทุน ~$75 เทียบกับ $86 ⇒ +$11 เดิมพันต่ำ ความผันผวนต่ำ — การเคลียร์ที่ดีไว้สร้างความมั่นใจ`],
+    [`Lowest WR of all — if it's a no-deposit trial, it's pure +EV.`, `เทิร์นต่ำสุดในบรรดาทั้งหมด — ถ้าเป็นโบนัสทดลองแบบไม่ต้องฝาก ก็เป็น +EV ล้วน ๆ`],
+    [`10× wagering is the lowest in your whole list. If this is a genuine no-deposit / free-trial bonus, the EV is strongly positive with zero deposit risk. Confirm the exact terms & amount first.`, `เทิร์น 10× ต่ำที่สุดในรายการทั้งหมดของคุณ หากนี่เป็นโบนัสไม่ต้องฝาก/ทดลองฟรีของแท้ EV จะเป็นบวกอย่างมากโดยไม่มีความเสี่ยงเงินฝาก ยืนยันเงื่อนไขและจำนวนที่แน่นอนก่อน`],
+
+    [`Tier 3 — Parachute (Non-Sticky)`, `เทียร์ 3 — ร่มชูชีพ (ไม่ติดหนึบ)`],
+    [`Deposit-safe · high variance`, `เงินฝากปลอดภัย · ความผันผวนสูง`],
+    [`Non-sticky 'parachute' bonuses. The WR is too high to clear flat, BUT your deposit is recoverable — you only ever risk the bonus phase. Our play: bet the cash to double on baccarat (lowest edge ~1.06%), then clear any bonus phase on slots (100% weight). Optional, high-variance upside.`, `โบนัส 'ร่มชูชีพ' แบบไม่ติดหนึบ เทิร์นสูงเกินกว่าจะเคลียร์แบบเดิมพันคงที่ <b>แต่</b>เงินฝากของคุณเอาคืนได้ — คุณเสี่ยงแค่เฟสโบนัสเท่านั้น <b>วิธีเล่นของเรา: เดิมพันเงินสดให้ได้สองเท่าที่บาคาร่า (ความได้เปรียบเจ้ามือต่ำสุด ~1.06%) แล้วเคลียร์เฟสโบนัสที่สล็อต (น้ำหนัก 100%)</b> เป็นทางเลือก กำไรผันผวนสูง`],
+    [`Lowest-WR non-sticky — best parachute play.`, `ไม่ติดหนึบที่เทิร์นต่ำสุด — เล่นร่มชูชีพได้ดีที่สุด`],
+    [`Non-sticky + 30× is the friendliest parachute here. Deposit recoverable; bold-play your cash to a target. Expected upside positive, but swingy.`, `ไม่ติดหนึบ + 30× เป็นร่มชูชีพที่เป็นมิตรที่สุดที่นี่ เงินฝากเอาคืนได้ เล่นเงินสดแบบกล้าได้กล้าเสียไปให้ถึงเป้า กำไรคาดการณ์เป็นบวก แต่เหวี่ยงแรง`],
+    [`Set a target & a walk-away before you start. Hit target → withdraw. Bust cash → grind the bonus or quit. Never top up.`, `<b>ตั้งเป้าและจุดเลิก</b>ก่อนเริ่ม ถึงเป้า → ถอนเงิน เงินสดหมด → ปั่นโบนัสต่อหรือเลิก อย่าเติมเงินเด็ดขาด`],
+    [`Wager your own cash first; bonus as backup.`, `เทิร์นเงินสดของคุณเองก่อน โบนัสไว้เป็นตัวสำรอง`],
+    [`Cash-reload / non-sticky: your money plays first and is withdrawable. Positive only with disciplined bold-play; otherwise just take your deposit back.`, `เติมเงินสด / ไม่ติดหนึบ: เงินของคุณเล่นก่อนและถอนได้ เป็นบวกเฉพาะเมื่อเล่นกล้าได้กล้าเสียอย่างมีวินัย ไม่อย่างนั้นก็แค่เอาเงินฝากคืนมา`],
+    [`Same parachute rules: pre-set target, no chasing, deposit comes back if you quit early.`, `กฎร่มชูชีพเหมือนเดิม: ตั้งเป้าล่วงหน้า ไม่ไล่ตาม เงินฝากกลับคืนมาถ้าเลิกก่อน`],
+    [`Reputable crypto casino, deposit-safe bonus.`, `คาสิโนคริปโตที่น่าเชื่อถือ โบนัสที่เงินฝากปลอดภัย`],
+    [`40× is high, so flat-clearing is −EV — but non-sticky means you risk only the bonus. Treat as a free shot on top of a recoverable deposit.`, `40× ถือว่าสูง การเคลียร์แบบเดิมพันคงที่จึงเป็น −EV — แต่ไม่ติดหนึบหมายความว่าคุณเสี่ยงแค่โบนัส มองเป็นโอกาสฟรีบนเงินฝากที่เอาคืนได้`],
+    [`Pre-set target. If you don't fancy the bold-play, just withdraw the deposit — you lose nothing.`, `ตั้งเป้าล่วงหน้า ถ้าไม่อยากเล่นกล้าได้กล้าเสีย ก็แค่ถอนเงินฝาก — คุณไม่เสียอะไรเลย`],
+    [`Confirmed non-sticky — deposit-safe, lowest-WR parachute here.`, `ยืนยันว่าไม่ติดหนึบ — เงินฝากปลอดภัย ร่มชูชีพเทิร์นต่ำสุดที่นี่`],
+    [`Confirmed NON-STICKY: your deposit stays withdrawable and only the bonus is at risk. 30× is the friendliest parachute WR in the campaign (ties Lilibet). Bet your cash to double on baccarat (~1.06% edge); hit target → withdraw. Bust the cash → the bonus deploys, clear it on slots.`, `ยืนยันว่า<b>ไม่ติดหนึบ</b>: เงินฝากของคุณยังถอนได้และมีแค่โบนัสที่เสี่ยง 30× เป็นเทิร์นร่มชูชีพที่เป็นมิตรที่สุดในแคมเปญ (เสมอ Lilibet) เดิมพันเงินสดให้ได้สองเท่าที่บาคาร่า (ความได้เปรียบ ~1.06%) ถึงเป้า → ถอนเงิน เงินสดหมด → โบนัสกางออก เคลียร์มันที่สล็อต`],
+    [`Pre-set a target and a walk-away first. Hit target → withdraw. Don't fancy the bold-play? Just pull your deposit — you lose nothing. Never top up to chase.`, `ตั้งเป้าและจุดเลิกล่วงหน้าก่อน ถึงเป้า → ถอนเงิน ไม่อยากเล่นกล้าได้กล้าเสีย? ก็แค่ดึงเงินฝากคืน — คุณไม่เสียอะไรเลย อย่าเติมเงินไล่ตามเด็ดขาด`],
+
+    [`⛔ The Trap Zone`, `⛔ เขตกับดัก`],
+    [`LOCKED · −EV`, `ถูกล็อก · −EV`],
+    [`The biggest, flashiest bonuses in your list. They are permanently locked because the math is brutal — the headline % is bait. Click any to see exactly how much it's projected to LOSE. Resisting them is itself an achievement.`, `โบนัสที่ใหญ่และหวือหวาที่สุดในรายการของคุณ มันถูกล็อกถาวรเพราะคณิตศาสตร์โหดร้าย — เปอร์เซ็นต์พาดหัวคือเหยื่อล่อ คลิกอันไหนก็ได้เพื่อดูว่ามันถูกคาดการณ์ว่าจะ<b>ขาดทุน</b>เท่าไร การต้านทานพวกมันเองก็คือความสำเร็จ`],
+    [`Biggest headline = worst EV.`, `พาดหัวใหญ่ที่สุด = EV แย่ที่สุด`],
+    [`Great brand, terrible welcome WR.`, `แบรนด์ดีเยี่ยม แต่เทิร์นโบนัสต้อนรับแย่มาก`],
+    [`The default 35×(D+B) trap — 30+ sites share it.`, `กับดักมาตรฐาน 35×(เงินฝาก+โบนัส) — มีเว็บกว่า 30 แห่งใช้ร่วมกัน`],
+
+    /* ---- quiz ---- */
+    [`A casino offers 300% up to $3,000 with 40× wagering on the bonus, cleared on a 96.5% slot (house edge 3.5%). Is it +EV?`, `คาสิโนเสนอ <b>300% สูงสุด $3,000</b> พร้อม<b>เทิร์น 40× บนโบนัส</b> เคลียร์บนสล็อต 96.5% (ความได้เปรียบเจ้ามือ 3.5%) นี่ +EV ไหม?`],
+    [`Yes — 300% is a huge free bonus!`, `ใช่ — 300% เป็นโบนัสฟรีก้อนใหญ่!`],
+    [`No — 40 × 3.5% = 1.4 > 1, so you lose ~40% of the bonus clearing it`, `ไม่ — 40 × 3.5% = 1.4 > 1 ดังนั้นคุณจะเสียโบนัสไป ~40% ในการเคลียร์เทิร์น`],
+    [`Can't tell without knowing the deposit size`, `บอกไม่ได้ถ้าไม่รู้ขนาดเงินฝาก`],
+    [`The rule: a match bonus is +EV only if wagerX × house-edge < 1. Here 40 × 0.035 = 1.40, so expected clearing cost is 140% of the bonus — a guaranteed long-run loss. The headline 300% is irrelevant. THIS is why the campaign skips them.`, `กฎ: โบนัสจับคู่จะ +EV ก็ต่อเมื่อ <b>จำนวนเท่าเทิร์น × ความได้เปรียบเจ้ามือ &lt; 1</b> ตรงนี้ 40 × 0.035 = 1.40 ดังนั้นต้นทุนเคลียร์เทิร์นที่คาดการณ์คือ 140% ของโบนัส — ขาดทุนในระยะยาวแน่นอน พาดหัว 300% ไม่เกี่ยวเลย <b>นี่</b>คือเหตุผลที่แคมเปญข้ามมันไป`],
+
+    /* ---- badges ---- */
+    [`Graduate — finished the Academy`, `บัณฑิต — เรียนจบสถาบันฝึก`],
+    [`Safety First — cleared a Pure-Value mission`, `ปลอดภัยไว้ก่อน — ทำภารกิจคุณค่าล้วน ๆ สำเร็จ`],
+    [`First Clear — completed a low-WR clear`, `เคลียร์ครั้งแรก — ทำการเคลียร์เทิร์นต่ำสำเร็จ`],
+    [`Cash & Run — withdrew the instant WR hit 100%`, `ถอนแล้วเผ่น — ถอนเงินทันทีที่เทิร์นถึง 100%`],
+    [`Ice Veins — logged a loss without chasing`, `เลือดเย็น — บันทึกการขาดทุนโดยไม่ไล่ตาม`],
+    [`Parachutist — completed a non-sticky mission`, `นักกระโดดร่ม — ทำภารกิจไม่ติดหนึบสำเร็จ`],
+    [`Trap Dodger — inspected a trap and walked away`, `หลบกับดัก — ตรวจสอบกับดักแล้วเดินจากไป`],
+    [`Campaign Complete — finished every recommended mission`, `แคมเปญสำเร็จ — ทำทุกภารกิจที่แนะนำเสร็จสิ้น`],
+
+    /* ---- mission modal ---- */
+    [`💡 Why this mission:`, `💡 ทำไมต้องทำภารกิจนี้:`],
+    [`🛑 Stop-rules:`, `🛑 กฎหยุด:`],
+    [`🎉 Wagering complete — WITHDRAW NOW`, `🎉 เคลียร์เทิร์นครบแล้ว — ถอนเงินเดี๋ยวนี้`],
+    [`The edge is spent. Click the withdraw step. Do NOT keep playing.`, `ความได้เปรียบหมดแล้ว คลิกขั้นตอนถอนเงิน <b>อย่า</b>เล่นต่อ`],
+    [`Set deposit`, `ตั้งเงินฝาก`],
+    [`Update`, `อัปเดต`],
+    [`Log & finish`, `บันทึกและจบ`],
+    [`Unlocks when wagering hits 100%. Tempted to keep going?`, `ปลดล็อกเมื่อเทิร์นถึง 100% อยากเล่นต่อใช่ไหม?`],
+    [`…keep playing?`, `…เล่นต่อ?`],
+    [`🔒 Complete the previous tier to unlock.`, `🔒 ทำเทียร์ก่อนหน้าให้เสร็จเพื่อปลดล็อก`],
+    [`🔒 Locked`, `🔒 ถูกล็อก`],
+
+    /* ---- trap inspector ---- */
+    [`This is the bait. Big % + big wagering = big loss. Here's the math on a $200 deposit:`, `🎣 นี่คือเหยื่อล่อ เปอร์เซ็นต์ใหญ่ + เทิร์นใหญ่ = ขาดทุนใหญ่ นี่คือการคำนวณบนเงินฝาก $200:`],
+    [`✅ The campaign skips this on purpose. You just earned the 🚫 Trap Dodger badge for looking before leaping. Walk away and stick to Tiers 1–2.`, `✅ <b>แคมเปญข้ามอันนี้อย่างตั้งใจ</b> คุณเพิ่งได้เหรียญตรา 🚫 <b>หลบกับดัก</b> จากการมองก่อนกระโดด เดินจากไปและยึดมั่นกับเทียร์ 1–2`],
+    [`Got it — I'll skip it`, `เข้าใจแล้ว — ฉันจะข้ามมันไป`],
+
+    /* ---- academy modal ---- */
+    [`🎓 The One Rule`, `🎓 กฎข้อเดียว`],
+    [`The whole game in 60 seconds`, `ทั้งเกมใน 60 วินาที`],
+    [`Every casino game loses money long-term (the house edge). For a new player the only real edge is the welcome bonus — but it's locked behind wagering (WR). The bonus is worth taking only if:`, `เกมคาสิโนทุกเกมขาดทุนในระยะยาว (<b>ความได้เปรียบเจ้ามือ</b>) สำหรับผู้เล่นใหม่ ความได้เปรียบจริงเพียงอย่างเดียวคือ<b>โบนัสต้อนรับ</b> — แต่มันถูกล็อกอยู่หลัง<b>เทิร์น (WR)</b> โบนัสคุ้มที่จะรับก็ต่อเมื่อ:`],
+    [`That's it. Big headline %? Irrelevant. A 470% bonus at 45× WR loses money; a boring 100% at 12× makes money.`, `แค่นั้นแหละ เปอร์เซ็นต์พาดหัวใหญ่? ไม่เกี่ยว โบนัส 470% ที่เทิร์น 45× ขาดทุน ส่วน 100% น่าเบื่อ ๆ ที่ 12× ได้กำไร`],
+    [`🛑 The 3 stop-rules this game enforces for you:`, `🛑 กฎหยุด 3 ข้อที่เกมนี้บังคับใช้ให้คุณ:`],
+    [`Stop-loss — deposit busts before WR? Walk. Never redeposit to chase.`, `<b>หยุดขาดทุน</b> — เงินฝากหมดก่อนครบเทิร์น? เดินจากไป อย่าฝากซ้ำเพื่อไล่ตามเด็ดขาด`],
+    [`Stop-win — WR hits 100%? Withdraw instantly. Every spin after is −EV.`, `<b>หยุดเมื่อชนะ</b> — เทิร์นถึง 100%? ถอนทันที ทุกการหมุนหลังจากนั้นคือ −EV`],
+    [`Budget — only ever stake your planned amount; bonuses are not a reason to deposit more.`, `<b>งบประมาณ</b> — เดิมพันเฉพาะจำนวนที่วางแผนไว้เท่านั้น โบนัสไม่ใช่เหตุผลให้ฝากเงินเพิ่ม`],
+
+    /* ---- payout log: stat cards ---- */
+    [`Bankroll now`, `เงินทุนตอนนี้`],
+    [`Realized net`, `กำไรสุทธิที่เกิดขึ้นจริง`],
+    [`Projected (EV)`, `คาดการณ์ (EV)`],
+    [`Variance / luck`, `ความผันผวน / โชค`],
+    [`Deposited`, `ฝากแล้ว`],
+    [`Withdrawn`, `ถอนแล้ว`],
+    [`Sessions`, `เซสชัน`],
+
+    /* ---- payout log: panels & form ---- */
+    [`📈 Bankroll over time — projected vs realized`, `📈 เงินทุนตามช่วงเวลา — คาดการณ์เทียบกับจริง`],
+    [`Log a session below to see your curve build.`, `บันทึกเซสชันด้านล่างเพื่อดูเส้นกราฟของคุณก่อตัวขึ้น`],
+    [`Realized bankroll`, `เงินทุนที่เกิดขึ้นจริง`],
+    [`📒 Sessions`, `📒 เซสชัน`],
+    [`No sessions logged yet.`, `ยังไม่มีเซสชันที่บันทึกไว้`],
+    [`Date`, `วันที่`],
+    [`Casino`, `คาสิโน`],
+    [`Dep`, `ฝาก`],
+    [`Bonus`, `โบนัส`],
+    [`Turnover`, `เทิร์นโอเวอร์`],
+    [`Net`, `สุทธิ`],
+    [`Proj`, `คาดการณ์`],
+    [`Status`, `สถานะ`],
+    [`Notes`, `หมายเหตุ`],
+    [`Deposit $`, `เงินฝาก $`],
+    [`Bonus $`, `โบนัส $`],
+    [`Turnover $`, `เทิร์นโอเวอร์ $`],
+    [`Withdrawn $`, `ถอนแล้ว $`],
+    [`e.g. We88`, `เช่น We88`],
+    [`Projected EV $ (auto)`, `EV คาดการณ์ $ (อัตโนมัติ)`],
+    [`auto`, `อัตโนมัติ`],
+    [`code used, slot, withdrawal method…`, `โค้ดที่ใช้ สล็อต วิธีถอนเงิน…`],
+    [`Save session`, `บันทึกเซสชัน`],
+    [`Update session`, `อัปเดตเซสชัน`],
+    [`Cancel edit`, `ยกเลิกการแก้ไข`],
+    [`⤓ Import completed campaign missions`, `⤓ นำเข้าภารกิจแคมเปญที่เสร็จแล้ว`],
+    [`⤒ Export CSV`, `⤒ ส่งออก CSV`],
+    [`Net = Withdrawn − Deposit. Variance shows how far luck has pushed you from expectation — over many sessions it should trend toward $0 if your reads are right.`, `สุทธิ = ถอน − ฝาก <b>ความผันผวน</b> แสดงว่าโชคผลักคุณห่างจากค่าคาดหวังไปแค่ไหน — เมื่อผ่านหลายเซสชันมันควรเข้าใกล้ $0 หากการวิเคราะห์ของคุณถูกต้อง`],
+    [`➕ Log a session`, `➕ บันทึกเซสชัน`],
+    [`✎ Edit session`, `✎ แก้ไขเซสชัน`],
+    [`Edit`, `แก้ไข`],
+    [`Delete`, `ลบ`],
+
+    /* status options */
+    [`in-progress`, `กำลังดำเนินการ`],
+    [`cleared`, `เคลียร์แล้ว`],
+    [`busted`, `เงินหมด`],
+    [`withdrawn`, `ถอนแล้ว`]
+  ];
+  var DICT={};for(var _i=0;_i<PAIRS.length;_i++){DICT[nrm(PAIRS[_i][0])]=PAIRS[_i][1];}
+
+  /* === PATTERNS for runtime-variable strings === */
+  var PATTERNS=[
+    /* level / rank label: "Level 1 · Rookie" */
+    {re:/^Level (\d+) · (.+)$/, fn:function(m){return "เลเวล "+m[1]+" · "+(RANKS_TH[m[2]]||m[2]);}},
+    /* XP label: "0 / 100 XP" */
+    {re:/^(\d+) \/ (\d+) XP$/, fn:function(m){return m[1]+" / "+m[2]+" XP";}},
+    /* step counter: "3 / 7 steps" */
+    {re:/^(\d+) \/ (\d+) steps$/, fn:function(m){return m[1]+" / "+m[2]+" ขั้นตอน";}},
+    /* "#NN in tracker" */
+    {re:/^#(\d+) in tracker$/, fn:function(m){return "#"+m[1]+" ในแทร็กเกอร์";}},
+    /* mission card footers */
+    {re:/^↻ Review lesson$/, fn:function(){return "↻ ทบทวนบทเรียน";}},
+    {re:/^▶ Start lesson$/, fn:function(){return "▶ เริ่มบทเรียน";}},
+    {re:/^✓ Completed — review$/, fn:function(){return "✓ เสร็จแล้ว — ทบทวน";}},
+    {re:/^▶ Open mission$/, fn:function(){return "▶ เปิดภารกิจ";}},
+    {re:/^🔍 Why it's a trap$/, fn:function(){return "🔍 ทำไมมันเป็นกับดัก";}},
+    {re:/^Lesson complete$/, fn:function(){return "บทเรียนเสร็จสมบูรณ์";}},
+    {re:/^Lesson$/, fn:function(){return "บทเรียน";}},
+    /* risk chip "⚠ Very low" etc. */
+    {re:/^⚠ (.+)$/, fn:function(m){
+      var R={"Very low":"ต่ำมาก","Low":"ต่ำ","Medium":"ปานกลาง","High variance":"ผันผวนสูง","Verify":"ต้องตรวจสอบ","Trap":"กับดัก"};
+      return "⚠ "+(R[m[1]]||m[1]);}},
+    /* step factory details with $ amounts */
+    {re:/^Check the live wagering requirement, the max bet while a bonus is active \((.+?)\), bonus-eligible game RTP, and any max-cashout cap\. Terms change — never trust the headline\.$/,
+      fn:function(m){return "ตรวจสอบเงื่อนไขเทิร์นโอเวอร์ที่ใช้จริง, เดิมพันสูงสุดขณะที่โบนัสยังทำงานอยู่ ("+m[1]+"), RTP ของเกมที่นับเทิร์นได้ และเพดานถอนเงินสูงสุดถ้ามี เงื่อนไขเปลี่ยนได้ — อย่าเชื่อแค่พาดหัว";}},
+    {re:/^Recommended: \$(\d+)\. This sizes the bonus to its cap without over-committing your \$200\. Never deposit more to 'unlock' a bigger match\.$/,
+      fn:function(m){return "แนะนำ: <b>$"+m[1]+"</b> จำนวนนี้ทำให้โบนัสเต็มเพดานโดยไม่ทุ่มเงิน $200 ของคุณมากเกินไป อย่าฝากเพิ่มเพื่อ 'ปลดล็อก' โบนัสจับคู่ก้อนใหญ่ขึ้น";}},
+    {re:/^Enter any required code and confirm the bonus is credited\. This offer: (.+)$/,
+      fn:function(m){return "กรอกโค้ดที่ต้องใช้ (ถ้ามี) และยืนยันว่าโบนัสถูกเครดิตแล้ว ข้อเสนอนี้: "+m[1];}},
+    {re:/^Enter any required code and confirm the bonus is credited\.$/,
+      fn:function(){return "กรอกโค้ดที่ต้องใช้ (ถ้ามี) และยืนยันว่าโบนัสถูกเครดิตแล้ว";}},
+    {re:/^Clear the wagering — turnover \$([\d,]+)$/,
+      fn:function(m){return "เคลียร์เทิร์น — ยอดหมุนเวียน $"+m[1];}},
+    {re:/^Play a high-RTP, low-volatility slot at flat small stakes \(≤\$(\d+)\/bet, ~1–2% of balance\)\. Low variance = best chance to finish the clear\. Log your turnover as you go\.$/,
+      fn:function(m){return "เล่นสล็อต RTP สูง ความผันผวนต่ำ ด้วยเดิมพันคงที่จำนวนน้อย (≤$"+m[1]+"/ครั้ง, ~1–2% ของยอดเงิน) ความผันผวนต่ำ = โอกาสดีที่สุดที่จะเคลียร์สำเร็จ บันทึกยอดหมุนเวียนของคุณไปเรื่อย ๆ";}},
+    {re:/^Enter net profit\/loss for this mission\. Expected ≈ \+\$(\d+) — but variance is real; a single run can differ a lot\.$/,
+      fn:function(m){return "กรอกกำไร/ขาดทุนสุทธิของภารกิจนี้ คาดว่า ≈ <b>+$"+m[1]+"</b> — แต่ความผันผวนเป็นเรื่องจริง ครั้งเดียวอาจต่างกันมาก";}},
+    {re:/^Claim the rakeback\/cashback\. Value is volume-based — expected ≈ \+\$(\d+) over modest play\.$/,
+      fn:function(m){return "เคลมเรคแบ็ก/แคชแบ็ก คุณค่าขึ้นกับปริมาณการเล่น — คาดว่า ≈ <b>+$"+m[1]+"</b> เมื่อเล่นพอประมาณ";}},
+    {re:/^Non-sticky = your deposit is withdrawable; only the bonus is at risk\. Step 1 \(cash\):.*$/,
+      fn:function(){return "ไม่ติดหนึบ = เงินฝากของคุณถอนได้ มีแค่โบนัสที่เสี่ยง <b>ขั้นที่ 1 (เงินสด):</b> ถ้าเล่นบาคาร่าได้ ให้เดิมพันเงินสดของคุณให้ได้ราวสองเท่าฝั่งเจ้ามือ — ความได้เปรียบเจ้ามือ ~1.06% เป็นความผันผวนที่ถูกที่สุดที่ซื้อได้ (เดิมพันเสมอเงินก้อนใหญ่น้อยครั้ง = จ่ายความได้เปรียบน้อยที่สุด) ถึงเป้า → ถอนเงิน โบนัสยังไม่แตะ <b>ขั้นที่ 2 (โบนัส):</b> ถ้าเงินสดหมด ร่มชูชีพกางออก → สลับไป<b>สล็อต</b> (น้ำหนักเทิร์น 100% บาคาร่าแทบไม่นับ) เพื่อเคลียร์เทิร์น ⚠ ตรวจกฎเดิมพันสูงสุดขณะมีโบนัส — มันอาจจำกัดเดิมพันบาคาร่าของคุณแม้จะเป็นเงินสดของคุณเอง";}},
+    {re:/^Because it's non-sticky you can pull your deposit whenever you stop\. Worst case you lose only the planned bonus-phase stake — never your full \$200\.$/,
+      fn:function(){return "เพราะมันไม่ติดหนึบ คุณดึงเงินฝากออกได้ทุกเมื่อที่หยุด กรณีแย่ที่สุดคุณเสียแค่เงินเดิมพันเฟสโบนัสที่วางแผนไว้ — ไม่มีทางเสีย $200 ทั้งหมด";}},
+    /* trap math expected cost line */
+    {re:/^expected cost: \$([\d,]+) × 0\.035 = \$([\d,]+)$/,
+      fn:function(m){return "ต้นทุนคาดการณ์: $"+m[1]+" × 0.035 = $"+m[2];}},
+    /* deposit recommended hint "recommended $50" */
+    {re:/^recommended \$(\d+)$/, fn:function(m){return "แนะนำ $"+m[1];}},
+    /* wager input placeholder family handled below */
+    {re:/^\$ (\d+)$/, fn:function(m){return "$ "+m[1];}},
+    {re:/^\$ so far$/, fn:function(){return "$ จนถึงตอนนี้";}},
+    {re:/^net \$ \(e\.g\. (-?\d+)\)$/, fn:function(m){return "สุทธิ $ (เช่น "+m[1]+")";}},
+    {re:/^\+ \$(\d+)$/, fn:function(m){return "+ $"+m[1];}},
+    /* wager meta "4,800 / 4,800 · ≈960 spins @ $5" */
+    {re:/^([\d,]+) \/ ([\d,]+) · ≈(\d+) spins @ \$(\d+)$/,
+      fn:function(m){return m[1]+" / "+m[2]+" · ≈"+m[3]+" สปิน @ $"+m[4];}},
+    /* sessions stat "12 · 5W" */
+    {re:/^(\d+) · (\d+)W$/, fn:function(m){return m[1]+" · ชนะ "+m[2];}},
+    /* "📒 Sessions (3)" */
+    {re:/^📒 Sessions \((\d+)\)$/, fn:function(m){return "📒 เซสชัน ("+m[1]+")";}},
+    /* "Start $200" legend */
+    {re:/^Start \$(\d+)$/, fn:function(m){return "เริ่มต้น $"+m[1];}},
+    /* sync note "✓ synced to betTrackerV1 (12:34:56 PM)" */
+    {re:/^✓ synced to betTrackerV1 \((.+)\)$/, fn:function(m){return "✓ ซิงค์ไปยัง betTrackerV1 แล้ว ("+m[1]+")";}},
+    /* toasts with variable name */
+    {re:/^🏅 Badge unlocked: (.+)$/, fn:function(m){return "🏅 ปลดล็อกเหรียญตรา: "+(DICT[nrm(m[1])]||m[1]);}},
+    {re:/^✅ Mission complete: (.+?)\s+\(\+50 XP\)$/, fn:function(m){return "✅ ภารกิจสำเร็จ: "+m[1]+"  (+50 XP)";}},
+    {re:/^⤓ Imported (\d+) mission\(s\)\.$/, fn:function(m){return "⤓ นำเข้า "+m[1]+" ภารกิจแล้ว";}},
+    {re:/^✓ Logged in \(local profile\)$/, fn:function(){return "✓ เข้าสู่ระบบแล้ว (โปรไฟล์ในเครื่อง)";}},
+    {re:/^✓ Logged in$/, fn:function(){return "✓ เข้าสู่ระบบแล้ว";}},
+    /* account button states */
+    {re:/^👤 Guest$/, fn:function(){return "👤 ผู้เยี่ยมชม";}},
+    {re:/^👤 Log in$/, fn:function(){return "👤 เข้าสู่ระบบ";}},
+    {re:/^👤 (.+)$/, fn:function(m){return "👤 "+m[1];}},
+    /* quiz "Quick check ✓ passed" */
+    {re:/^Quick check ✓ passed$/, fn:function(){return "ทดสอบด่วน ✓ ผ่านแล้ว";}},
+    {re:/^Quick check$/, fn:function(){return "ทดสอบด่วน";}},
+    /* login-failed compound message */
+    {re:/^(.+) — enable Anonymous sign-ins in Supabase → Auth → Providers\.$/,
+      fn:function(m){var h=DICT[nrm(m[1])]||m[1];return h+" — เปิดใช้งาน Anonymous sign-ins ใน Supabase → Auth → Providers";}},
+    /* confirm dialogs */
+    {re:/^Sign out of (.+)\?$/, fn:function(m){return "ออกจากระบบของ "+m[1]+" หรือไม่?";}},
+    {re:/^Reset campaign progress\? \(Your betTrackerV1 data is NOT touched\.\)$/,
+      fn:function(){return "รีเซ็ตความคืบหน้าแคมเปญหรือไม่? (ข้อมูล betTrackerV1 ของคุณจะไม่ถูกแตะต้อง)";}},
+    {re:/^Delete this session\?$/, fn:function(){return "ลบเซสชันนี้หรือไม่?";}}
+  ];
+
+  var INLINE={B:1,I:1,EM:1,STRONG:1,SPAN:1,A:1,BR:1,SMALL:1,CODE:1,U:1,SUP:1,SUB:1,MARK:1,WBR:1};
+  var SKIP={SCRIPT:1,STYLE:1,NOSCRIPT:1,TEXTAREA:1,svg:1,SVG:1};
+  function lookup(raw){
+    if(raw==null)return null; if(!/\S/.test(raw))return null;
+    var sig=nrm(raw), t=DICT[sig];
+    if(t==null){for(var i=0;i<PATTERNS.length;i++){var m=sig.match(PATTERNS[i].re);if(m){t=PATTERNS[i].fn(m);break;}}}
+    return t==null?null:t;
+  }
+  function lookupText(raw){
+    var t=lookup(raw); if(t==null)return null;
+    var lead=(raw.match(/^\s*/)||[''])[0], tail=(raw.match(/\s*$/)||[''])[0];
+    return lead+t+tail;
+  }
+  function inlineOnly(el){
+    for(var c=el.firstChild;c;c=c.nextSibling){if(c.nodeType===1&&!INLINE[c.tagName])return false;}
+    return true;
+  }
+  function translate(node){
+    if(node.nodeType===3){var t=lookupText(node.nodeValue);if(t!=null&&t!==node.nodeValue)node.nodeValue=t;return;}
+    if(node.nodeType!==1)return;
+    if(node.id==='langSwitch'||node.__t||SKIP[node.nodeName])return;
+    if(node.placeholder){var ph=lookup(node.placeholder);if(ph!=null)node.placeholder=ph;}
+    var ttl=node.getAttribute&&node.getAttribute('title');
+    if(ttl){var tt=lookup(ttl);if(tt!=null)node.setAttribute('title',tt);}
+    if(inlineOnly(node)){var html=lookup(node.textContent);if(html!=null){node.innerHTML=html;node.__t=1;return;}}
+    for(var c=node.firstChild;c;c=c.nextSibling)translate(c);
+  }
+  function start(){
+    translate(document.body);
+    var dt=lookup(document.title);if(dt!=null)document.title=dt;
+    buildSwitch();
+    var obs=new MutationObserver(function(muts){
+      for(var i=0;i<muts.length;i++){var mu=muts[i];
+        if(mu.type==='characterData')translate(mu.target);
+        else for(var j=0;j<mu.addedNodes.length;j++)translate(mu.addedNodes[j]);}
+    });
+    obs.observe(document.body,{childList:true,subtree:true,characterData:true});
+  }
+  ready(start);
+})();
+</script>
+<!-- ===== /i18n ===== -->
+</body>
+</html>
