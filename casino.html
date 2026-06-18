@@ -162,13 +162,6 @@
   .iconbtn{background:none;border:0;cursor:pointer;color:var(--muted);font-size:14px;padding:3px 5px}
   .iconbtn:hover{color:var(--accent)}
   .empty{color:var(--muted);font-size:13px;text-align:center;padding:24px}
-  #premiumBar{max-width:1300px;margin:14px auto 0;padding:0 28px}
-  .premium{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(135deg,#1b1533,#141925);border:1px solid #3b2f6b;border-radius:14px;padding:13px 18px;box-shadow:0 0 0 1px #5b8cff22,var(--shadow)}
-  .pm-tag{display:inline-block;font-size:10px;letter-spacing:.6px;font-weight:700;color:var(--gold);background:#2a210f;border:1px solid #5a4423;border-radius:20px;padding:3px 10px}
-  .pm-head{font-size:18px;font-weight:800;margin-top:8px}
-  .pm-roi{color:var(--good)} .pm-roi.neg{color:var(--bad)}
-  .pm-sub{font-size:12px;color:var(--muted);margin-top:3px}
-  .pm-ill{color:var(--warn)}
 </style>
 </head>
 <body>
@@ -201,7 +194,6 @@
   <div class="badges" id="badgeRow"></div>
 </div></div>
 
-<div id="premiumBar"></div>
 <main id="campaign"></main>
 <main id="paylog" style="display:none"></main>
 
@@ -285,7 +277,7 @@ async function emailLogin(mode){
   }
 }
 async function onLogin(user){USER={id:user.id,email:user.email,label:user.email||("Player "+(user.id||"").slice(0,4))}; await pullState(); afterLogin(true);}
-function afterLogin(live){SKIPPED=false;localStorage.removeItem("bhAuthSkip");showAuth(false);updateAcct();render();renderHUD();renderPremium();toast("✓ Logged in"+(live?"":" (local profile)"),true);}
+function afterLogin(live){SKIPPED=false;localStorage.removeItem("bhAuthSkip");showAuth(false);updateAcct();render();renderHUD();toast("✓ Logged in"+(live?"":" (local profile)"),true);}
 function skipAuth(){SKIPPED=true;localStorage.setItem("bhAuthSkip","1");showAuth(false);updateAcct();}
 async function signOut(){if(AUTH_LIVE&&USER){try{await sb.auth.signOut();}catch(e){}}localStorage.removeItem("bhDemoUser");USER=null;updateAcct();toast("Signed out.");showAuth(true);}
 
@@ -813,7 +805,6 @@ function setView(v){
   document.getElementById('campaign').style.display=v==='campaign'?'':'none';
   document.getElementById('paylog').style.display=v==='paylog'?'':'none';
   document.querySelectorAll('#viewSeg button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
-  const pb=document.getElementById('premiumBar'); if(pb) pb.style.display=(v==='campaign')?'':'none';
   if(v==='paylog') renderPaylog(); else render();
 }
 document.getElementById('viewSeg').addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(b)setView(b.dataset.view);});
@@ -960,75 +951,8 @@ document.getElementById('paylog').addEventListener('change',e=>{
   if(e.target.id==='plName'){const pj=document.getElementById('plProj');if(pj&&!pj.value)pj.value=evForName(e.target.value);}
 });
 
-/* ============ PREMIUM PREVIEW — expert last-25-bets ROI teaser ============
-   Reads real results from Supabase table `expert_bets` (public read) when present;
-   otherwise shows clearly-labelled SAMPLE data so the number is never a false claim. */
-const SAMPLE_BETS=[[2.1,1],[2.1,0],[2.0,1],[1.8,0],[2.4,1],[2.4,0],[1.9,1],[1.95,0],[2.6,1],[2.6,0],[2.0,1],[1.85,0],[2.2,1],[2.2,0],[1.8,1],[2.0,0],[2.5,1],[1.75,0],[1.9,1],[2.3,0],[2.1,1],[1.9,0],[2.0,1],[2.5,0],[2.1,1]].map(x=>({odds:x[0],won:!!x[1],stake:1}));
-
-function expertStats(bets){
-  let stake=0,ret=0,w=0,cum=0; const eq=[];
-  bets.forEach(b=>{const s=b.stake||1,o=+b.odds; stake+=s; const r=b.won?s*o:0; ret+=r; cum+=(r-s); eq.push(cum); if(b.won)w++;});
-  const profit=ret-stake;
-  return {n:bets.length,w,l:bets.length-w,profit,roi:stake?profit/stake*100:0,eq,avgOdds:bets.reduce((a,b)=>a+(+b.odds),0)/bets.length};
-}
-function sparkPremium(eq,w,h){
-  if(!eq||!eq.length) return "";
-  const pad=6,n=eq.length,mn=Math.min(0,...eq),mx=Math.max(0,...eq),rng=(mx-mn)||1;
-  const X=i=>pad+(n<=1?0:(i/(n-1))*(w-2*pad)), Y=v=>pad+(1-(v-mn)/rng)*(h-2*pad);
-  const pts=eq.map((v,i)=>X(i).toFixed(1)+","+Y(v).toFixed(1)).join(" ");
-  const col=eq[eq.length-1]>=0?"#36d399":"#f87171", y0=Y(0).toFixed(1);
-  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" preserveAspectRatio="none" style="max-width:100%">
-    <line x1="${pad}" y1="${y0}" x2="${w-pad}" y2="${y0}" stroke="#28314a" stroke-width="1" stroke-dasharray="3 3"/>
-    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2"/></svg>`;
-}
-async function renderPremium(){
-  const bar=document.getElementById('premiumBar'); if(!bar) return;
-  let bets=SAMPLE_BETS, live=false;
-  if(typeof AUTH_LIVE!=='undefined' && AUTH_LIVE && sb){
-    try{const {data}=await sb.from('expert_bets').select('odds,stake,won,ts').order('ts',{ascending:false}).limit(25);
-      if(data&&data.length){bets=data.map(x=>({odds:+x.odds,stake:+x.stake||1,won:!!x.won})); live=true;}}catch(e){}
-  }
-  const s=expertStats(bets); const roiTxt=(s.roi>=0?'+':'')+s.roi.toFixed(1)+'%';
-  bar.innerHTML=`<div class="premium">
-    <div style="flex:1;min-width:210px">
-      <span class="pm-tag">🔒 PREMIUM · Expert Tips</span>
-      <div class="pm-head">Last ${s.n} expert bets: <span class="pm-roi ${s.roi<0?'neg':''}">${roiTxt} ROI</span></div>
-      <div class="pm-sub">${s.w}W · ${s.l}L · ${(s.profit>=0?'+':'')}${s.profit.toFixed(1)}u · avg odds ${s.avgOdds.toFixed(2)}${live?'':' · <span class="pm-ill">sample data</span>'}</div>
-    </div>
-    ${sparkPremium(s.eq,180,46)}
-    <button class="btn primary" id="pmCta">Unlock Premium →</button>
-  </div>`;
-  const cta=document.getElementById('pmCta'); if(cta) cta.onclick=()=>premiumModal(s,live);
-}
-function premiumModal(s,live){
-  const modal=document.getElementById('modal'); const roiTxt=(s.roi>=0?'+':'')+s.roi.toFixed(1)+'%';
-  const opted=localStorage.getItem('bhPremiumInterest')==='1';
-  modal.innerHTML=`<div class="modal-h"><div><h3>👑 Bonus Hunter Premium</h3>
-    <div style="font-size:12px;color:var(--muted);margin-top:3px">Follow the engine's expert picks</div></div><span class="x" data-close>×</span></div>
-   <div class="modal-b">
-     <div class="pl-stats">
-       <div class="pl-card"><div class="k">Last ${s.n} bets ROI</div><div class="v ${s.roi<0?'neg':'pos'}">${roiTxt}</div></div>
-       <div class="pl-card"><div class="k">Record</div><div class="v">${s.w}–${s.l}</div></div>
-       <div class="pl-card"><div class="k">Profit (units)</div><div class="v ${s.profit<0?'neg':'pos'}">${(s.profit>=0?'+':'')}${s.profit.toFixed(1)}u</div></div>
-       <div class="pl-card"><div class="k">Avg odds</div><div class="v">${s.avgOdds.toFixed(2)}</div></div>
-     </div>
-     <div class="panel" style="margin-top:14px"><h3>Profit curve — last ${s.n} settled tips</h3>${sparkPremium(s.eq,680,150)}</div>
-     <div class="why" style="margin-top:14px">💎 <b>Premium unlocks:</b> the expert's live picks (the ones behind that ROI), the auto odds-scanner alerts, and best-bonus + best-odds matchups — so your cleared bonus funds go on +EV bets, not guesses.</div>
-     <div class="panel" style="filter:blur(4px);user-select:none;pointer-events:none;margin-top:10px">
-       <div style="font-size:13px">🔒 Today: Lazio v Inter Under 2.5 @ 1.95 · Muay Thai — Rodtang ML @ 1.80 · 3 more picks…</div></div>
-     ${live?'':'<div class="pm-sub" style="margin-top:10px">Figures shown are <span class="pm-ill">sample data</span> until live results are connected.</div>'}
-     <button class="btn good full" id="pmJoin" style="margin-top:14px">${opted?'✓ On the Premium list':'🔓 Join Premium — get early access'}</button>
-   </div>`;
-  const j=document.getElementById('pmJoin');
-  if(j) j.onclick=()=>{ localStorage.setItem('bhPremiumInterest','1');
-    if(typeof AUTH_LIVE!=='undefined' && AUTH_LIVE && sb && USER){ try{ sb.from('premium_interest').upsert({user_id:USER.id,ts:new Date().toISOString()}); }catch(e){} }
-    toast("On the Premium early-access list! 🎉",true); j.textContent="✓ On the Premium list"; };
-  document.getElementById('ovl').classList.add('on');
-}
-
 render();
 initAuth();
-renderPremium();
 </script>
 <!-- ===== i18n EN/TH (injected) ===== -->
 <style>
