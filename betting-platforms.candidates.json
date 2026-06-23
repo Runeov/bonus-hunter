@@ -197,6 +197,305 @@
       "gw": "Norway-facing (NOK, Norwegian — 'Vi spiller'); sportsbook-led. FIAT ONLY — bank cards, bank transfer, Revolut, e-wallets (NO crypto). Deposit min 100 kr (max 20–25k); withdrawal min 200 kr / max 25k, bank-transfer 1% fee (min 20 kr). HIGH-VALUE welcome: free bet, no bonus wagering, only 2x deposit playthrough (Tier-1/2). Free-bet conversion ~44% of face at the 1.80 floor, more at longer odds.",
       "_sources": ["unionbet.com/nb-no/betalingsmetoder + promotions page (supplied by user)"],
       "_verify": ["casino own-welcome bonus (if any)"]
+    },
+    {
+      "name": "Scored",
+      "focus": "Sports",
+      "lic": "—",
+      "url": "scored.com",
+      "sb": "250% up to 1000 EUR",
+      "sw": "— se vilkår",
+      "cb": "—",
+      "cw": "—",
+      "type": "Deposit match",
+      "max": "1000 EUR",
+      "valid": "—",
+      "gw": "Oddsen.nu EXCLUSIVE · new partner · via Oddsen.nu",
+      "_sources": [
+        "oddsen.nu/bookmakers"
+      ],
+      "_verify": [
+        "wagering",
+        "validity",
+        "license",
+        "url"
+      ]
+    },
+    {
+      "name": "Golazzo",
+      "focus": "Sports",
+      "lic": "—",
+      "url": "golazzo.com",
+      "sb": "200% up to 750 EUR",
+      "sw": "— se vilkår",
+      "cb": "—",
+      "cw": "—",
+      "type": "Deposit match",
+      "max": "750 EUR",
+      "valid": "—",
+      "gw": "via Oddsen.nu",
+      "_sources": [
+        "oddsen.nu/bookmakers"
+      ],
+      "_verify": [
+        "wagering",
+        "validity",
+        "license",
+        "url"
+      ]
+    },
+    {
+      "name": "Zoccer",
+      "focus": "Sports",
+      "lic": "—",
+      "url": "zoccer.com",
+      "sb": "150% up to 600 EUR",
+      "sw": "— se vilkår",
+      "cb": "—",
+      "cw": "—",
+      "type": "Deposit match",
+      "max": "600 EUR",
+      "valid": "—",
+      "gw": "New bookmaker · via Oddsen.nu",
+      "_sources": [
+        "oddsen.nu/bookmakers"
+      ],
+      "_verify": [
+        "wagering",
+        "validity",
+        "license",
+        "url"
+      ]
+    },
+    {
+      "name": "BoaBet",
+      "focus": "Both",
+      "lic": "—",
+      "url": "boabet.com",
+      "sb": "150% up to 500 EUR + 20 EUR freebet",
+      "sw": "— se vilkår",
+      "cb": "—",
+      "cw": "—",
+      "type": "Deposit match",
+      "max": "500 EUR + 20 EUR FB",
+      "valid": "—",
+      "gw": "Oddsen.nu EXCLUSIVE · 4,000+ slots · via Oddsen.nu",
+      "_sources": [
+        "oddsen.nu/bookmakers"
+      ],
+      "_verify": [
+        "wagering",
+        "validity",
+        "license",
+        "url"
+      ]
+    },
+    {
+      "name": "BetFriday",
+      "focus": "Sports",
+      "lic": "—",
+      "url": "betfriday.com",
+      "sb": "100% up to 500 EUR",
+      "sw": "— se vilkår",
+      "cb": "—",
+      "cw": "—",
+      "type": "Deposit match",
+      "max": "500 EUR",
+      "valid": "—",
+      "gw": "World Cup welcome offer · via Oddsen.nu",
+      "_sources": [
+        "oddsen.nu/bookmakers"
+      ],
+      "_verify": [
+        "wagering",
+        "validity",
+        "license",
+        "url"
+      ]
+    },
+    {
+      "name": "Lanista",
+      "focus": "Sports",
+      "lic": "—",
+      "url": "lanista.com",
+      "sb": "150% up to 300 EUR",
+      "sw": "— se vilkår",
+      "cb": "—",
+      "cw": "—",
+      "type": "Deposit match",
+      "max": "300 EUR",
+      "valid": "—",
+      "gw": "Launched Nov 2025 · owned by Partner Casa (Sportuna) · via Oddsen.nu",
+      "_sources": [
+        "oddsen.nu/bookmakers"
+      ],
+      "_verify": [
+        "wagering",
+        "validity",
+        "license",
+        "url"
+      ]
+    },
+    {
+      "name": "BVBet",
+      "focus": "Sports",
+      "lic": "—",
+      "url": "bvbet.com",
+      "sb": "100% up to 300 EUR",
+      "sw": "— se vilkår",
+      "cb": "—",
+      "cw": "—",
+      "type": "Deposit match",
+      "max": "300 EUR",
+      "valid": "—",
+      "gw": "New sports brand · via Oddsen.nu",
+      "_sources": [
+        "oddsen.nu/bookmakers"
+      ],
+      "_verify": [
+        "wagering",
+        "validity",
+        "license",
+        "url"
+      ]
+    },
+    {
+      "name": "Betovo",
+      "focus": "Both",
+      "lic": "—",
+      "url": "betovo.com",
+      "sb": "100% up to 250 EUR (Oddsen.nu) · std sport up to €1,000 / first 3 deposits",
+      "sw": "— se vilkår",
+      "cb": "100% up to €2,025 (casino, 3 deposits)",
+      "cw": "—",
+      "type": "Deposit match",
+      "max": "250 EUR",
+      "valid": "—",
+      "gw": "8,000+ games · fiat+crypto · via Oddsen.nu",
+      "_sources": [
+        "oddsen.nu/bookmakers"
+      ],
+      "_verify": [
+        "wagering",
+        "validity",
+        "license",
+        "url"
+      ]
+    },
+    {
+      "name": "iBet",
+      "focus": "Both",
+      "lic": "—",
+      "url": "ibet.com",
+      "sb": "100% up to 200 EUR",
+      "sw": "— se vilkår",
+      "cb": "—",
+      "cw": "—",
+      "type": "Deposit match",
+      "max": "200 EUR",
+      "valid": "—",
+      "gw": "Long-trusted Oddsen.nu bookmaker · via Oddsen.nu",
+      "_sources": [
+        "oddsen.nu/bookmakers"
+      ],
+      "_verify": [
+        "wagering",
+        "validity",
+        "license",
+        "url"
+      ]
+    },
+    {
+      "name": "KumoBet",
+      "focus": "Sports",
+      "lic": "—",
+      "url": "kumobet.com",
+      "sb": "100% up to 200 EUR",
+      "sw": "— se vilkår",
+      "cb": "—",
+      "cw": "—",
+      "type": "Deposit match",
+      "max": "200 EUR",
+      "valid": "—",
+      "gw": "World Cup 2026 offer · via Oddsen.nu",
+      "_sources": [
+        "oddsen.nu/bookmakers"
+      ],
+      "_verify": [
+        "wagering",
+        "validity",
+        "license",
+        "url"
+      ]
+    },
+    {
+      "name": "BetScore",
+      "focus": "Sports",
+      "lic": "—",
+      "url": "betscore.com",
+      "sb": "200% up to 100 EUR",
+      "sw": "— se vilkår",
+      "cb": "—",
+      "cw": "—",
+      "type": "Deposit match",
+      "max": "100 EUR",
+      "valid": "—",
+      "gw": "World Cup 2026 offer · via Oddsen.nu",
+      "_sources": [
+        "oddsen.nu/bookmakers"
+      ],
+      "_verify": [
+        "wagering",
+        "validity",
+        "license",
+        "url"
+      ]
+    },
+    {
+      "name": "GranaWin",
+      "focus": "Sports",
+      "lic": "—",
+      "url": "granawin.com",
+      "sb": "100% up to 100 EUR",
+      "sw": "— se vilkår",
+      "cb": "—",
+      "cw": "—",
+      "type": "Deposit match",
+      "max": "100 EUR",
+      "valid": "—",
+      "gw": "via Oddsen.nu",
+      "_sources": [
+        "oddsen.nu/bookmakers"
+      ],
+      "_verify": [
+        "wagering",
+        "validity",
+        "license",
+        "url"
+      ]
+    },
+    {
+      "name": "Betanora",
+      "focus": "Sports",
+      "lic": "—",
+      "url": "betanora.com",
+      "sb": "100% up to 100 EUR",
+      "sw": "— se vilkår",
+      "cb": "—",
+      "cw": "—",
+      "type": "Deposit match",
+      "max": "100 EUR",
+      "valid": "—",
+      "gw": "Wed 'BetaNora Mania': 20 EUR -> 50 EUR sport · via Oddsen.nu",
+      "_sources": [
+        "oddsen.nu/bookmakers"
+      ],
+      "_verify": [
+        "wagering",
+        "validity",
+        "license",
+        "url"
+      ]
     }
   ]
 }
