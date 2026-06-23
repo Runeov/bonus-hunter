@@ -1393,5 +1393,20 @@
     "max": "€50 free bet",
     "valid": "14 days (claim + wager)",
     "gw": "New customers only · excl. Armenia/Finland/Poland · min qualifying odds 1.80 · live mirror arcticbet2.com · license unconfirmed · T&Cs 07/04/2026"
+  },
+  {
+    "n": 87,
+    "name": "EpicBet",
+    "focus": "Sports",
+    "lic": "—",
+    "url": "epicbet.com",
+    "sb": "100% deposit match up to 200 USDT — matched instantly",
+    "sw": "10x · min odds 1.80 · 30 days · all bets & markets",
+    "cb": "—",
+    "cw": "—",
+    "type": "Deposit match",
+    "max": "200 USDT",
+    "valid": "claim within 24h of registration · 30 days to wager",
+    "gw": "USDT/crypto · instant match, no questions asked · time-limited offer · license unconfirmed (likely Curaçao)"
   }
 ]
