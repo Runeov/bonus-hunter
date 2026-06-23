@@ -1378,5 +1378,20 @@
     "max": "",
     "valid": "",
     "local": "Established crypto casino"
+  },
+  {
+    "n": 86,
+    "name": "ArcticBet",
+    "focus": "Sports",
+    "lic": "—",
+    "url": "arcticbet.com",
+    "sb": "€50 free bet — place a €50 qualifying bet @ min odds 1.80",
+    "sw": "FB winnings wager 3x @ min 1.50 · 14 days · free-bet stake not returned",
+    "cb": "—",
+    "cw": "—",
+    "type": "Free bet (qualifying bet)",
+    "max": "€50 free bet",
+    "valid": "14 days (claim + wager)",
+    "gw": "New customers only · excl. Armenia/Finland/Poland · min qualifying odds 1.80 · live mirror arcticbet2.com · license unconfirmed · T&Cs 07/04/2026"
   }
 ]
