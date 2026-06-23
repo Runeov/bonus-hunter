@@ -1,0 +1,202 @@
+{
+  "_meta": {
+    "generatedAt": "2026-06-20",
+    "note": "Candidate sportsbook vendors NOT yet in betting-platforms.json. `_sources`/`_verify` are for the vetting agent — STRIP underscore-prefixed keys before merging. `n` omitted; assign on merge. Terms are from review/affiliate sites (Jun 2026) and MUST be confirmed on the operator's official page before trusting the EV (same 'VERIFY' convention as the main list).",
+    "schema": "n, name, focus(Both|Sports|Casino), lic, url, sb, sw, cb, cw, type, max, valid, gw",
+    "dedupedAgainst": "85 existing records in betting-platforms.json",
+    "pureValueNoWager": ["Gamdom", "Betbarter"],
+    "verifyWageringBeforeEV": ["Shuffle", "GGBet"],
+    "_leads_unverified": ["Vobet", "Chillybets", "Cyber.bet", "Crickex (no welcome bonus)", "K9win (casino-led, no clear sports bonus)", "Maxim88", "EU9", "KTO", "Blaze", "Estrelabet", "Bet7k"]
+  },
+  "candidates": [
+    {
+      "name": "Gamdom", "focus": "Both", "lic": "Curaçao", "url": "gamdom.com",
+      "sb": "15% rakeback, first 7 days", "sw": "No wagering · activate within 6h of signup",
+      "cb": "15% rakeback (same offer — casino or sports)", "cw": "No wagering",
+      "type": "Rakeback release", "max": "—", "valid": "7 days",
+      "gw": "Crypto-native; popular in Norway; PURE VALUE — no clearing trap",
+      "_sources": ["casino.org/bonus/gamdom"],
+      "_verify": ["exact rakeback % / house-edge basis", "7-day window"]
+    },
+    {
+      "name": "Sportsbet.io", "focus": "Both", "lic": "Curaçao", "url": "sportsbet.io",
+      "sb": "100% up to 300 USDT + 3x odds boost", "sw": "10x wagering · min odds 1.50 · within 7 days",
+      "cb": "shared welcome up to 300 USDT", "cw": "VERIFY",
+      "type": "Sticky", "max": "VERIFY", "valid": "7 days",
+      "gw": "Crypto-native; Yolo/Coingaming group, established",
+      "_sources": ["oddspedia.com/bookmakers/sportsbet-io/bonus"],
+      "_verify": ["casino-side wagering", "max bet per bonus bet"]
+    },
+    {
+      "name": "Thunderpick", "focus": "Both", "lic": "Curaçao", "url": "thunderpick.io",
+      "sb": "100% up to €600", "sw": "10x rollover · min deposit €20 · min odds VERIFY",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Sticky (VERIFY)", "max": "VERIFY", "valid": "VERIFY",
+      "gw": "Crypto-native (BTC/ETH/LTC); esports-strong",
+      "_sources": ["thunderpick.io/sports", "betandskill.com/betting/sites/crypto"],
+      "_verify": ["min odds", "validity window", "sticky vs non-sticky"]
+    },
+    {
+      "name": "Coolbet", "focus": "Both", "lic": "Estonia (NOT Curaçao)", "url": "coolbet.com",
+      "sb": "100% up to ~$200 (region-specific)", "sw": "6x · min odds 1.50 · 30 days · e-wallets (Neteller/Skrill) excluded",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Non-Sticky (VERIFY)", "max": "VERIFY", "valid": "30 days",
+      "gw": "Nordic-facing, popular in Norway; sharper lines; fiat + crypto",
+      "_sources": ["sportsbookreview.com/betting-sites/coolbet"],
+      "_verify": ["NO-market offer/code (search hit was CAD)", "sticky vs non-sticky"]
+    },
+    {
+      "name": "Shuffle", "focus": "Both", "lic": "Curaçao (OGL/2024/1337/0628, Natural Nine B.V.)", "url": "shuffle.com",
+      "sb": "100% up to $1,000 (code MAX100)", "sw": "VERIFY",
+      "cb": "100% up to $1,000 (code MAX100)", "cw": "VERIFY",
+      "type": "VERIFY", "max": "VERIFY", "valid": "VERIFY",
+      "gw": "Crypto-native (BTC/ETH/SOL/USDT)",
+      "_sources": ["sportsgambler.com/review/shuffle/promo-code"],
+      "_verify": ["wagering multiplier — REQUIRED before trusting EV (big headline)"]
+    },
+    {
+      "name": "Spinbetter", "focus": "Both", "lic": "Curaçao", "url": "spinbetter.com",
+      "sb": "100% up to ~$200 (sports)", "sw": "VERIFY (1xBet-family terms)",
+      "cb": "~$200 casino + spins", "cw": "VERIFY",
+      "type": "Sticky (VERIFY)", "max": "VERIFY", "valid": "VERIFY",
+      "gw": "1xBet white-label family — cf. Melbet/Betwinner/888starz/Megapari already listed; LOW marginal value",
+      "_sources": ["bitcoin.com/gambling/betting/bonuses"],
+      "_verify": ["whether worth adding given family overlap"]
+    },
+    {
+      "name": "Rollbit", "focus": "Both", "lic": "Curaçao", "url": "rollbit.com",
+      "sb": "VERIFY — RLB rakeback/token model, no standard deposit match", "sw": "VERIFY",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Rakeback release (VERIFY)", "max": "—", "valid": "—",
+      "gw": "Crypto-native; trading/casino-led, sportsbook secondary",
+      "_sources": ["betandskill.com/betting/sites/crypto"],
+      "_verify": ["is there any sports welcome value at all"]
+    },
+    {
+      "name": "Jackbit", "focus": "Both", "lic": "Curaçao", "url": "jackbit.com",
+      "sb": "Sports welcome (modest) — VERIFY % / cap", "sw": "VERIFY",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "VERIFY", "max": "VERIFY", "valid": "VERIFY",
+      "gw": "Crypto-native; 12+ coins incl. DAI/SHIB/TRON; strong in-play & market depth",
+      "_sources": ["cryptoslate.com/crypto-sportsbooks/jackbit-sportsbook-review"],
+      "_verify": ["sports bonus size + wagering"]
+    },
+    {
+      "name": "Betplay", "focus": "Both", "lic": "Curaçao", "url": "betplay.io",
+      "sb": "100% first deposit (cap varies by coin) + daily rakeback + 10% weekly cashback", "sw": "VERIFY",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Sticky + Rakeback (VERIFY)", "max": "VERIFY", "valid": "VERIFY",
+      "gw": "Crypto-native; casino/sportsbook/poker since 2020",
+      "_sources": ["bitcoin.com/gambling/betting/bonuses"],
+      "_verify": ["deposit-match cap per coin", "wagering multiplier"]
+    },
+    {
+      "name": "Betobet", "focus": "Both", "lic": "Curaçao", "url": "betobet.com",
+      "sb": "150% up to €500 (code STYVIP1)", "sw": "10x (bonus+deposit) · min odds 1.50 single / 2.50 acca",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Sticky", "max": "VERIFY", "valid": "VERIFY",
+      "gw": "Offshore; multi-currency",
+      "_sources": ["sportytrader.com/en/betting-sites/betobet/bonus", "oddspedia.com/bookmakers/betobet/bonus"],
+      "_verify": ["validity window", "max bet per bonus bet", "casino terms"]
+    },
+    {
+      "name": "N1bet", "focus": "Both", "lic": "Curaçao", "url": "n1bet.com",
+      "sb": "50% up to €200 (or 50% free bets up to C$300)", "sw": "min deposit €20 · free-bet min odds 1.01–2.00",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Free-bet / Sticky (VERIFY)", "max": "VERIFY", "valid": "VERIFY",
+      "gw": "Offshore; cashback / reloads / comboboosts",
+      "_sources": ["sportsgambler.com/review/n1bet/promo-code", "mightytips.com/bonuses/n1bet"],
+      "_verify": ["EU vs CA offer", "bonus-cash vs free-bet model"]
+    },
+    {
+      "name": "GGBet", "focus": "Both", "lic": "Curaçao", "url": "gg.bet",
+      "sb": "500% across first 3 deposits (100% up to €500 / 200% up to €1500 / 200% up to €1500)", "sw": "VERIFY — likely high WR",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Sticky (VERIFY)", "max": "VERIFY", "valid": "VERIFY",
+      "gw": "Esports-focused; crypto + fiat",
+      "_sources": ["tribalfootball.com/reviews/gg-bet/bonus"],
+      "_verify": ["wagering multiplier (likely high) — REQUIRED for EV", "per-deposit caps"]
+    },
+    {
+      "name": "1win", "focus": "Both", "lic": "Curaçao (Antillephone 8048/JAZ)", "url": "1win.com",
+      "sb": "100/120/130/150% across first 4 deposits up to $1,720 (crypto up to 600%)", "sw": "options: 25x @1.50 single / 1.70 multi · or 6x @1.80 · or 40x (dep+bonus)",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Sticky (multi-deposit)", "max": "VERIFY", "valid": "VERIFY",
+      "gw": "Major offshore; crypto + fiat; strong India/CIS",
+      "_sources": ["sportytrader.com/en/betting-sites/1win/bonus", "wincomparator.com/bookmakers/1win/bonus"],
+      "_verify": ["which rollover option is default", "crypto 600% terms"]
+    },
+    {
+      "name": "10Cric", "focus": "Both", "lic": "Curaçao", "url": "10cric.com",
+      "sb": "150% up to ₹40,000 (also seen 100% up to ₹15,000)", "sw": "20x (deposit+bonus) · min odds 2.00 · 90 days",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Sticky", "max": "VERIFY", "valid": "90 days",
+      "gw": "India/cricket-focused; IPL/PSL markets",
+      "_sources": ["livescore.com/en-gb/betting-sites/10cric-review/india", "sportskhabri.com/sports-betting-sites/10cric"],
+      "_verify": ["current headline (₹15k vs ₹40k)", "casino terms"]
+    },
+    {
+      "name": "Fairplay", "focus": "Both", "lic": "Curaçao", "url": "fairplay.club",
+      "sb": "Up to 300% up to ₹50,000", "sw": "20x bonus · 30 days · min deposit ₹500",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Sticky", "max": "VERIFY", "valid": "30 days",
+      "gw": "India/cricket-focused",
+      "_sources": ["sportskhabri.com/sports-betting-sites/fairplay/fairplay-bonuses"],
+      "_verify": ["min odds", "casino terms"]
+    },
+    {
+      "name": "Betbarter", "focus": "Both", "lic": "Curaçao", "url": "betbarter.com",
+      "sb": "First-deposit cashback up to 25% (max ₹10,000) — NO wagering · 7 days", "sw": "No wagering (cashback) · +20% weekly sports reload (code 'Weekly Sports')",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Cashback / No rollover", "max": "VERIFY", "valid": "7 days",
+      "gw": "India/cricket-focused; PURE VALUE — cashback, no clearing trap",
+      "_sources": ["sportskhabri.com/sports-betting-sites/betbarter-bookmaker/betbarter-bonuses"],
+      "_verify": ["cashback basis (net loss?)"]
+    },
+    {
+      "name": "Bluechip", "focus": "Both", "lic": "Curaçao", "url": "bluechip.io",
+      "sb": "Up to ₹3,300 welcome (code ODDSPEDIA)", "sw": "VERIFY",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "VERIFY", "max": "VERIFY", "valid": "VERIFY",
+      "gw": "India/cricket-focused; crypto-friendly",
+      "_sources": ["oddspedia.com/bookmakers/bluechip/bonus"],
+      "_verify": ["wagering + min odds", "INR cap vs %"]
+    },
+    {
+      "name": "Betano", "focus": "Sports", "lic": "Curaçao / Malta (Kaizen Gaming)", "url": "betano.com",
+      "sb": "Region-specific: 100% up to $500 (CA, 5x) · 50% up to ₦200,000 (NG, 10x @3.0) · £10→£30 free bets (UK)", "sw": "CA: 5x · 30 days · min dep $10 (LOW WR = strong EV)",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Sticky / Non-Sticky (region-dependent, VERIFY)", "max": "VERIFY", "valid": "30 days",
+      "gw": "Major regulated/grey book (Kaizen); Brazil/Europe/Africa/LatAm; sharper lines",
+      "_sources": ["covers.com/betting/reviews/betano", "sportytrader.com/en-ng/betting-sites/betano/bonus"],
+      "_verify": ["which region applies to NO/TH", "sticky vs non-sticky per region"]
+    },
+    {
+      "name": "Parimatch", "focus": "Both", "lic": "Curaçao / Cyprus", "url": "parimatch.com",
+      "sb": "150% up to ₹20,000 (IN, code PMTT); region-specific", "sw": "20x · min odds 1.50 single / 1.30 per leg (1.70 total) · 7 days · min dep $20",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Sticky", "max": "VERIFY", "valid": "7 days",
+      "gw": "Major international; India/CIS/Africa; crypto + fiat",
+      "_sources": ["mightytips.com/bonuses/parimatch", "sportytrader.com/en-in/betting-sites/parimatch/bonus"],
+      "_verify": ["non-India headline", "casino terms"]
+    },
+    {
+      "name": "Sbobet", "focus": "Sports", "lic": "Isle of Man / Philippines", "url": "sbobet.com",
+      "sb": "100% sports welcome (cap in selected currency)", "sw": "VERIFY rollover + min odds",
+      "cb": "VERIFY", "cw": "VERIFY",
+      "type": "Sticky (VERIFY)", "max": "VERIFY", "valid": "VERIFY",
+      "gw": "Sharp Asian book (low margins, high limits); BD/KH/ID/MM/MY/TH/VN. NOTE: SBOTOP (already listed) is its sister skin",
+      "_sources": ["help.sbobet.com/article/100-sports-welcome-bonus-1229.html"],
+      "_verify": ["rollover multiplier + min odds", "overlap with SBOTOP already in list"]
+    },
+    {
+      "name": "UnionBet", "focus": "Both", "lic": "Kahnawake Gaming Commission (#001018) — operator Dcentral Enterprises S.R.L. (Costa Rica); pay agent Summitpay Solutions Ltd. (Cyprus)", "url": "unionbet.com",
+      "sb": "100% Free Bet up to 3,000 NOK on first deposit ≥500 kr (tiers: 500/1000/2000/3000 kr Free Bet)", "sw": "Free Bet: NO bonus wagering · min total odds 1.80 · single bet used whole (SNR — net winnings paid as cash) · 14-day expiry · void/push not re-credited · not valid on Odds Boosts. Withdrawal gate: deposit must be wagered 2x on odds or casino.",
+      "cb": "No dedicated casino welcome found (has Casino/Live Casino/Slots)", "cw": "n/a",
+      "type": "Free bet (SNR) — no bonus WR; 2x deposit playthrough", "max": "Free Bet used whole (no split)", "valid": "14 days",
+      "gw": "Norway-facing (NOK, Norwegian — 'Vi spiller'); sportsbook-led. FIAT ONLY — bank cards, bank transfer, Revolut, e-wallets (NO crypto). Deposit min 100 kr (max 20–25k); withdrawal min 200 kr / max 25k, bank-transfer 1% fee (min 20 kr). HIGH-VALUE welcome: free bet, no bonus wagering, only 2x deposit playthrough (Tier-1/2). Free-bet conversion ~44% of face at the 1.80 floor, more at longer odds.",
+      "_sources": ["unionbet.com/nb-no/betalingsmetoder + promotions page (supplied by user)"],
+      "_verify": ["casino own-welcome bonus (if any)"]
+    }
+  ]
+}
